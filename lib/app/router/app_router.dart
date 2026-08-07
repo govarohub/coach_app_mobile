@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/authentication/presentation/pages/login_page.dart';
+import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/splash/presentation/pages/splash_page.dart';
+
 import 'app_routes.dart';
 import 'route_names.dart';
 
@@ -8,20 +12,16 @@ import 'route_names.dart';
 /// Coach App Mobile
 /// App Router
 ///
-/// Infraestructura base de GoRouter.
+/// Configuración centralizada de GoRouter.
 ///
-/// En CK-003.1 únicamente se registra una pantalla temporal
-/// para validar que el router funcione correctamente.
+/// Todas las rutas de la aplicación deberán registrarse aquí.
 ///
-/// Las rutas funcionales serán agregadas progresivamente
-/// en los siguientes CK.
-///
+/// CK-003.3
 /// ---------------------------------------------------------------------------
-
 abstract final class AppRouter {
   AppRouter._();
 
-  /// Configuración global del router.
+  /// Router principal de la aplicación.
   static final GoRouter router = GoRouter(
     debugLogDiagnostics: true,
 
@@ -31,16 +31,28 @@ abstract final class AppRouter {
       GoRoute(
         path: AppRoutes.splash,
         name: RouteNames.splash,
-        builder: (context, state) {
-          return const Scaffold(
-            body: Center(
-              child: Text(
-                'Coach App Mobile',
-              ),
-            ),
-          );
-        },
+        builder: (context, state) => const SplashPage(),
+      ),
+
+      GoRoute(
+        path: AppRoutes.login,
+        name: RouteNames.login,
+        builder: (context, state) => const LoginPage(),
+      ),
+
+      GoRoute(
+        path: AppRoutes.home,
+        name: RouteNames.home,
+        builder: (context, state) => const HomePage(),
       ),
     ],
+
+    errorBuilder: (context, state) {
+      return const Scaffold(
+        body: Center(
+          child: Text('Página no encontrada'),
+        ),
+      );
+    },
   );
 }

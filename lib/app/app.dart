@@ -1,13 +1,28 @@
 import 'package:flutter/material.dart';
 
+import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
+/// ---------------------------------------------------------------------------
+/// Coach App Mobile
+///
+/// Widget raíz de la aplicación.
+///
+/// Responsable únicamente de configurar:
+///
+/// • Theme
+/// • Router
+///
+/// No contiene lógica de negocio.
+///
+/// CK-003.3
+/// ---------------------------------------------------------------------------
 class CoachApp extends StatelessWidget {
   const CoachApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'Coach App Mobile',
 
       debugShowCheckedModeBanner: false,
@@ -18,11 +33,7 @@ class CoachApp extends StatelessWidget {
 
       themeMode: ThemeMode.system,
 
-      home: const Scaffold(
-        body: Center(
-          child: Text('Coach App Mobile'),
-        ),
-      ),
+      routerConfig: AppRouter.router,
     );
   }
 }
