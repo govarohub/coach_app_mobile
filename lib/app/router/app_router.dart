@@ -10,22 +10,41 @@ import 'route_names.dart';
 
 /// ---------------------------------------------------------------------------
 /// Coach App Mobile
-/// App Router
 ///
-/// Configuración centralizada de GoRouter.
+/// Configuración global del sistema de navegación.
 ///
-/// Todas las rutas de la aplicación deberán registrarse aquí.
+/// Reglas:
 ///
-/// CK-003.3
+/// • Todas las rutas deben registrarse aquí.
+/// • Ningún módulo utilizará Navigator.push().
+/// • Ningún módulo declarará rutas propias.
+/// • Todas las redirecciones futuras se implementarán aquí.
+///
+/// Preparado para:
+///
+/// CK-004 Riverpod
+/// CK-005 Firebase
+/// CK-007 Auth
+///
 /// ---------------------------------------------------------------------------
 abstract final class AppRouter {
   AppRouter._();
 
-  /// Router principal de la aplicación.
+  /// Router oficial de la aplicación.
   static final GoRouter router = GoRouter(
     debugLogDiagnostics: true,
 
     initialLocation: AppRoutes.splash,
+
+    // -----------------------------------------------------------------------
+    // Redirecciones globales.
+    //
+    // En CK-007 se implementará la validación de autenticación.
+    // Por ahora no existe ninguna regla de redirección.
+    // -----------------------------------------------------------------------
+    redirect: (context, state) {
+      return null;
+    },
 
     routes: <RouteBase>[
       GoRoute(
@@ -48,9 +67,15 @@ abstract final class AppRouter {
     ],
 
     errorBuilder: (context, state) {
-      return const Scaffold(
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Error'),
+        ),
         body: Center(
-          child: Text('Página no encontrada'),
+          child: Text(
+            'Ruta no encontrada:\n${state.uri}',
+            textAlign: TextAlign.center,
+          ),
         ),
       );
     },
