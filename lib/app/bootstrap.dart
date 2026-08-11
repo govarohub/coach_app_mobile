@@ -17,11 +17,13 @@ import 'app.dart';
 /// ---------------------------------------------------------------------------
 Future<void> bootstrap() async {
   // Garantiza la inicialización de Flutter antes
-  // de ejecutar la aplicación.
+  // de ejecutar cualquier configuración global.
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ProviderScope proporciona el contenedor global
-  // para todos los providers de Riverpod.
+  // ProviderScope crea el contenedor global de Riverpod.
+  //
+  // Todos los providers de la aplicación estarán disponibles
+  // debajo de este punto del árbol de widgets.
   runApp(
     const ProviderScope(
       child: CoachApp(),
