@@ -19,12 +19,15 @@ import 'app.dart';
 /// No contiene lógica de negocio.
 /// ---------------------------------------------------------------------------
 Future<void> bootstrap() async {
-  // Garantiza la inicialización de Flutter antes
-  // de ejecutar cualquier configuración global.
+  // Garantiza la inicialización de Flutter antes de ejecutar
+  // cualquier configuración global.
   WidgetsFlutterBinding.ensureInitialized();
 
   // Inicializa Firebase utilizando la configuración generada
-  // por FlutterFire para la plataforma actual.
+  // automáticamente por FlutterFire para la plataforma actual.
+  //
+  // Debe ejecutarse antes de utilizar FirebaseAuth, Firestore,
+  // Storage, Messaging u otros servicios de Firebase.
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
