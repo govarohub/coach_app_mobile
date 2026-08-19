@@ -7,62 +7,65 @@ import '../controllers/auth_controller.dart';
 
 /// ---------------------------------------------------------------------------
 /// Coach App Mobile
-/// LoginPage
+/// RegisterPage
 ///
-/// Inicio de sesión mediante correo y contraseña.
+/// Registro inicial de un cliente.
+///
+/// Al registrarse se crea la cuenta, el documento users y se envía
+/// la verificación del correo.
 /// ---------------------------------------------------------------------------
 
-class LoginPage extends ConsumerStatefulWidget {
-  const LoginPage({super.key});
+class RegisterPage extends ConsumerStatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  ConsumerState<LoginPage> createState() => _LoginPageState();
+  ConsumerState<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _LoginPageState extends ConsumerState<LoginPage> {
+class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _formKey = GlobalKey<FormState>();
 
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
 
   @override
   void dispose() {
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  Future<void> _login() async {
+  Future<void> _register() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     try {
-      final user = await ref
+      await ref
           .read(authControllerProvider.notifier)
-          .signIn(
+          .signUp(
             email: _emailController.text.trim(),
             password: _passwordController.text,
+            firstName: _firstNameController.text.trim(),
+            lastName: _lastNameController.text.trim(),
           );
 
       if (!mounted) {
         return;
       }
 
-      // El correo debe verificarse antes de entrar al área protegida.
-      if (!user.emailVerified) {
-        context.go(AppRoutes.verifyEmail);
-        return;
-      }
-
-      context.go(AppRoutes.home);
+      context.go(AppRoutes.verifyEmail);
     } on Exception catch (error) {
       if (!mounted) {
         return;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No fue posible iniciar sesión: $error')),
+        SnackBar(content: Text('No fue posible crear la cuenta: $error')),
       );
     }
   }
@@ -72,13 +75,37 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final authState = ref.watch(authControllerProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Iniciar sesión')),
+      appBar: AppBar(title: const Text('Crear cuenta')),
       body: SafeArea(
         child: Form(
           key: _formKey,
           child: ListView(
             padding: const EdgeInsets.all(24),
             children: [
+              TextFormField(
+                controller: _firstNameController,
+                decoration: const InputDecoration(labelText: 'Nombre'),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Ingresa tu nombre.';
+                  }
+
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _lastNameController,
+                decoration: const InputDecoration(labelText: 'Apellidos'),
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Ingresa tus apellidos.';
+                  }
+
+                  return null;
+                },
+              ),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -103,8 +130,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 obscureText: true,
                 decoration: const InputDecoration(labelText: 'Contraseña'),
                 validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Ingresa tu contraseña.';
+                  if (value == null || value.length < 6) {
+                    return 'La contraseña debe tener al menos 6 caracteres.';
                   }
 
                   return null;
@@ -112,22 +139,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               ),
               const SizedBox(height: 24),
               FilledButton(
-                onPressed: authState.isLoading ? null : _login,
+                onPressed: authState.isLoading ? null : _register,
                 child: authState.isLoading
                     ? const CircularProgressIndicator()
-                    : const Text('Iniciar sesión'),
-              ),
-              TextButton(
-                onPressed: () {
-                  context.go(AppRoutes.forgotPassword);
-                },
-                child: const Text('¿Olvidaste tu contraseña?'),
-              ),
-              TextButton(
-                onPressed: () {
-                  context.go(AppRoutes.register);
-                },
-                child: const Text('Crear una cuenta'),
+                    : const Text('Registrarme'),
               ),
             ],
           ),

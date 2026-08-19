@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+// Páginas de autenticación.
+import '../../features/authentication/presentation/pages/forgot_password_page.dart';
 import '../../features/authentication/presentation/pages/login_page.dart';
+import '../../features/authentication/presentation/pages/profile_setup_page.dart';
+import '../../features/authentication/presentation/pages/register_page.dart';
+import '../../features/authentication/presentation/pages/verify_email_page.dart';
+
+// Página de inicio.
 import '../../features/home/presentation/pages/home_page.dart';
+
+// Onboarding y Splash.
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 
@@ -61,6 +70,12 @@ abstract final class AppRouter {
       ),
 
       GoRoute(
+        path: AppRoutes.onboarding,
+        name: RouteNames.onboarding,
+        builder: (context, state) => const OnboardingPage(),
+      ),
+
+      GoRoute(
         path: AppRoutes.login,
         name: RouteNames.login,
         builder: (context, state) => const LoginPage(),
@@ -70,6 +85,30 @@ abstract final class AppRouter {
         path: AppRoutes.home,
         name: RouteNames.home,
         builder: (context, state) => const HomePage(),
+      ),
+
+      GoRoute(
+        path: AppRoutes.register,
+        name: RouteNames.register,
+        builder: (context, state) => const RegisterPage(),
+      ),
+
+      GoRoute(
+        path: AppRoutes.forgotPassword,
+        name: RouteNames.forgotPassword,
+        builder: (context, state) => const ForgotPasswordPage(),
+      ),
+
+      GoRoute(
+        path: AppRoutes.verifyEmail,
+        name: RouteNames.verifyEmail,
+        builder: (context, state) => const VerifyEmailPage(),
+      ),
+
+      GoRoute(
+        path: AppRoutes.profileSetup,
+        name: RouteNames.profileSetup,
+        builder: (context, state) => const ProfileSetupPage(),
       ),
     ],
 
