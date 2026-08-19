@@ -14,6 +14,9 @@ abstract final class AppRoutes {
 
   static const splash = '/';
 
+  /// Pantalla de introducción inicial.
+  static const onboarding = '/onboarding';
+
   static const login = '/login';
 
   static const register = '/register';

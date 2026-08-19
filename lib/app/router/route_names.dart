@@ -16,6 +16,9 @@ abstract final class RouteNames {
   /// Splash
   static const splash = 'splash';
 
+  /// Onboarding
+  static const onboarding = 'onboarding';
+
   /// Authentication
   static const login = 'login';
   static const register = 'register';

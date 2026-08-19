@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../features/authentication/presentation/pages/login_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 
 import 'app_routes.dart';
@@ -54,6 +55,12 @@ abstract final class AppRouter {
       ),
 
       GoRoute(
+        path: AppRoutes.onboarding,
+        name: RouteNames.onboarding,
+        builder: (context, state) => const OnboardingPage(),
+      ),
+
+      GoRoute(
         path: AppRoutes.login,
         name: RouteNames.login,
         builder: (context, state) => const LoginPage(),
@@ -68,9 +75,7 @@ abstract final class AppRouter {
 
     errorBuilder: (context, state) {
       return Scaffold(
-        appBar: AppBar(
-          title: const Text('Error'),
-        ),
+        appBar: AppBar(title: const Text('Error')),
         body: Center(
           child: Text(
             'Ruta no encontrada:\n${state.uri}',
