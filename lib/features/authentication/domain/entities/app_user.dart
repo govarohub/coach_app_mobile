@@ -1,11 +1,3 @@
-/// ---------------------------------------------------------------------------
-/// Coach App Mobile
-/// AppUser
-///
-/// Entidad de dominio del usuario autenticado.
-///
-/// Esta clase NO depende de Firebase ni de Flutter.
-/// ---------------------------------------------------------------------------
 
 class AppUser {
   const AppUser({

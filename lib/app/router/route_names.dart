@@ -1,10 +1,3 @@
-/// ---------------------------------------------------------------------------
-/// Coach App Mobile
-/// Route Names
-///
-/// Centraliza los nombres de las rutas.
-/// ---------------------------------------------------------------------------
-
 abstract final class RouteNames {
   RouteNames._();
 
@@ -54,15 +47,33 @@ abstract final class RouteNames {
 
   static const chat = 'chat';
 
-  // ---------------------------------------------------------------------------
-  // Profile
-  // ---------------------------------------------------------------------------
+  /// Profile
 
+  /// Pantalla principal del perfil.
   static const profile = 'profile';
+
+  /// Pantalla para editar los datos personales.
+  static const editProfile = 'edit-profile';
+
 
   // ---------------------------------------------------------------------------
   // Settings
   // ---------------------------------------------------------------------------
 
   static const settings = 'settings';
+
+  // -------------------------------------------------------------------------
+  // Dashboard
+  // -------------------------------------------------------------------------
+
+  /// Búsqueda de coaches.
+  static const coachSearch = 'coach-search';
+
+  /// Reservaciones.
+  static const reservations = 'reservations';
+
+  /// Favoritos.
+  static const favorites = 'favorites';
+
+  static const editCoachProfile = 'edit-coach-profile';
 }

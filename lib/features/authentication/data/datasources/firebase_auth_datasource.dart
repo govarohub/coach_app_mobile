@@ -85,6 +85,16 @@ class FirebaseAuthDataSource {
         .set(data, SetOptions(merge: true));
   }
 
+  /// Obtiene el documento del usuario desde Firestore.
+  ///
+  /// Se utiliza para recuperar información adicional que no pertenece
+  /// a Firebase Authentication, como el rol y el estado del perfil.
+  Future<DocumentSnapshot<Map<String, dynamic>>> getUserDocument(
+      String uid,
+      ) {
+    return _firestore.collection('users').doc(uid).get();
+  }
+
   /// Recarga el usuario actualmente autenticado.
   Future<User?> reloadCurrentUser() async {
     final user = _auth.currentUser;

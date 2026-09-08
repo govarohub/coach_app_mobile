@@ -1,10 +1,3 @@
-/// ---------------------------------------------------------------------------
-/// Coach App Mobile
-/// Routes
-///
-/// Centraliza los paths utilizados por GoRouter.
-/// ---------------------------------------------------------------------------
-
 abstract final class AppRoutes {
   AppRoutes._();
 
@@ -58,11 +51,36 @@ abstract final class AppRoutes {
   // Profile
   // ---------------------------------------------------------------------------
 
+  /// Pantalla principal del perfil del usuario.
   static const profile = '/profile';
+
+  /// Pantalla para editar los datos personales del usuario.
+  static const editProfile = '/profile/edit';
 
   // ---------------------------------------------------------------------------
   // Settings
   // ---------------------------------------------------------------------------
 
   static const settings = '/settings';
+
+  // -------------------------------------------------------------------------
+  // Dashboard
+  // -------------------------------------------------------------------------
+
+  /// Búsqueda de coaches.
+  ///
+  /// La pantalla será implementada en CK-012.
+  static const coachSearch = '/coach-search';
+
+  /// Reservaciones del cliente.
+  ///
+  /// La funcionalidad completa será implementada en CK-017.
+  static const reservations = '/reservations';
+
+  /// Coaches favoritos.
+  ///
+  /// La funcionalidad será implementada en CK-014.
+  static const favorites = '/favorites';
+
+  static const editCoachProfile = '/coach-profile/edit';
 }

@@ -6,20 +6,27 @@ import '../datasources/firebase_auth_datasource.dart';
 import '../models/user_model.dart';
 
 /// ---------------------------------------------------------------------------
-/// Coach App Mobile
 /// AuthRepositoryImpl
 ///
-/// Implementación concreta del contrato de autenticación.
+/// Implementación concreta del contrato AuthRepository.
 ///
-/// Esta clase conecta Domain con Firebase mediante el DataSource.
+/// Responsabilidades:
+/// - Conectar la capa de dominio con Firebase Authentication.
+/// - Transformar usuarios de Firebase a AppUser/UserModel.
+/// - Obtener desde Firestore datos adicionales del usuario, como el rol.
+/// - Delegar las operaciones al FirebaseAuthDataSource.
+/// - Mantener Firebase desacoplado de la capa de presentación.
 /// ---------------------------------------------------------------------------
-
 class AuthRepositoryImpl implements AuthRepository {
-  AuthRepositoryImpl({required FirebaseAuthDataSource dataSource})
-    : _dataSource = dataSource;
+  /// Constructor.
+  AuthRepositoryImpl({required this._dataSource});
 
+  /// Fuente de datos que se comunica directamente con Firebase.
   final FirebaseAuthDataSource _dataSource;
 
+  /// Convierte únicamente los datos disponibles desde Firebase Authentication.
+  ///
+  /// Se utiliza para currentUser porque el contrato actual es síncrono.
   AppUser? _mapUser(User? user) {
     if (user == null) {
       return null;
@@ -33,12 +40,36 @@ class AuthRepositoryImpl implements AuthRepository {
     );
   }
 
+  /// Convierte el usuario autenticado incorporando los datos almacenados
+  /// en Firestore, principalmente el rol.
+  Future<AppUser?> _mapAuthenticatedUser(User? user) async {
+    if (user == null) {
+      return null;
+    }
+
+    final document = await _dataSource.getUserDocument(user.uid);
+    final data = document.data();
+
+    return UserModel(
+      id: user.uid,
+      email: user.email ?? '',
+      displayName: user.displayName,
+      emailVerified: user.emailVerified,
+
+      // El rol se obtiene desde Firestore.
+      role: data?['role'] as String? ?? 'client',
+
+      // Conservamos el estado del perfil si existe en Firestore.
+      profileCompleted: data?['profileCompleted'] as bool? ?? false,
+    );
+  }
+
   @override
   AppUser? get currentUser => _mapUser(_dataSource.currentUser);
 
   @override
   Stream<AppUser?> get authStateChanges {
-    return _dataSource.authStateChanges.map(_mapUser);
+    return _dataSource.authStateChanges.asyncMap(_mapAuthenticatedUser);
   }
 
   @override
@@ -51,14 +82,16 @@ class AuthRepositoryImpl implements AuthRepository {
       password: password,
     );
 
-    return _mapUser(credential.user)!;
+    // Después del inicio de sesión recuperamos también el rol desde Firestore.
+    return (await _mapAuthenticatedUser(credential.user))!;
   }
 
   @override
   Future<AppUser?> reloadCurrentUser() async {
     final user = await _dataSource.reloadCurrentUser();
 
-    return _mapUser(user);
+    // Al recargar también recuperamos el rol desde Firestore.
+    return _mapAuthenticatedUser(user);
   }
 
   @override
@@ -85,7 +118,10 @@ class AuthRepositoryImpl implements AuthRepository {
       displayName: displayName,
       firstName: firstName,
       lastName: lastName,
+
+      // Los registros nuevos continúan siendo clientes.
       role: 'client',
+
       profileCompleted: false,
       emailVerified: user.emailVerified,
     );
@@ -131,7 +167,10 @@ class AuthRepositoryImpl implements AuthRepository {
       displayName: displayName,
       firstName: firstName,
       lastName: lastName,
+
+      // El flujo normal de registro continúa creando clientes.
       role: 'client',
+
       profileCompleted: true,
       emailVerified: user.emailVerified,
     );

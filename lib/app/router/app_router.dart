@@ -18,6 +18,11 @@ import '../../features/splash/presentation/pages/splash_page.dart';
 import 'app_routes.dart';
 import 'route_names.dart';
 
+import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/profile/presentation/pages/edit_profile_page.dart';
+
+import '../../features/coach/presentation/pages/coach_profile_page.dart';
+import '../../features/coach/presentation/pages/edit_coach_profile_page.dart';
 /// ---------------------------------------------------------------------------
 /// Coach App Mobile
 ///
@@ -70,12 +75,6 @@ abstract final class AppRouter {
       ),
 
       GoRoute(
-        path: AppRoutes.onboarding,
-        name: RouteNames.onboarding,
-        builder: (context, state) => const OnboardingPage(),
-      ),
-
-      GoRoute(
         path: AppRoutes.login,
         name: RouteNames.login,
         builder: (context, state) => const LoginPage(),
@@ -109,6 +108,30 @@ abstract final class AppRouter {
         path: AppRoutes.profileSetup,
         name: RouteNames.profileSetup,
         builder: (context, state) => const ProfileSetupPage(),
+      ),
+
+      GoRoute(
+        path: AppRoutes.profile,
+        name: RouteNames.profile,
+        builder: (context, state) => const ProfilePage(),
+      ),
+
+      GoRoute(
+        path: AppRoutes.editProfile,
+        name: RouteNames.editProfile,
+        builder: (context, state) => const EditProfilePage(),
+      ),
+
+      GoRoute(
+        path: AppRoutes.coachProfile,
+        name: RouteNames.coachProfile,
+        builder: (context, state) => const CoachProfilePage(),
+      ),
+
+      GoRoute(
+        path: AppRoutes.editCoachProfile,
+        name: RouteNames.editCoachProfile,
+        builder: (context, state) => const EditCoachProfilePage(),
       ),
     ],
 
