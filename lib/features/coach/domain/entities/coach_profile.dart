@@ -1,3 +1,6 @@
+import 'coach_specialty_catalog.dart';
+
+/// Representa el perfil profesional de un Coach.
 class CoachProfile {
   const CoachProfile({
     required this.coachId,
@@ -11,10 +14,11 @@ class CoachProfile {
     required this.available,
   });
 
-  /// UID del Coach.
+  /// Identificador del Coach.
   final String coachId;
 
-  /// Especialidades profesionales del Coach.
+  /// Especialidades asociadas al perfil profesional.
+  /// actualmente por el modelo y la persistencia en Firestore.
   final List<String> specialties;
 
   /// Años de experiencia profesional.
@@ -23,37 +27,54 @@ class CoachProfile {
   /// Tarifa por hora.
   final double hourlyRate;
 
-  /// Calificación promedio.
+  /// Calificación promedio del Coach.
   final double rating;
 
-  /// Indica si el Coach está verificado.
+  /// Indica si el perfil fue verificado.
   final bool verified;
 
-  /// Biografía profesional.
+  /// Biografía profesional opcional.
   final String? bio;
 
-  /// Ubicación profesional.
+  /// Ubicación profesional opcional.
   final CoachLocation? location;
 
   /// Indica si el Coach está disponible.
   final bool available;
+
+  /// -------------------------------------------------------------------------
+  /// CK-011.3
+  ///
+  /// Determina si una especialidad del perfil existe actualmente
+  /// dentro del catálogo definido por la aplicación.
+  ///
+  /// La comparación ignora mayúsculas/minúsculas y espacios exteriores.
+  ///
+  /// No modifica los datos del perfil ni realiza operaciones de persistencia.
+  /// -------------------------------------------------------------------------
+  bool hasCatalogSpecialty(String specialtyId) {
+    final normalizedId = specialtyId.trim().toLowerCase();
+
+    if (normalizedId.isEmpty) {
+      return false;
+    }
+
+    return CoachSpecialtyCatalog.items.any(
+          (specialty) => specialty.id.trim().toLowerCase() == normalizedId,
+    );
+  }
 }
 
-/// ---------------------------------------------------------------------------
-/// Ubicación profesional.
-///
-/// Se mantiene independiente de Firebase.
-/// ---------------------------------------------------------------------------
-
+/// Representa la ubicación profesional del Coach.
 class CoachLocation {
   const CoachLocation({
     required this.latitude,
     required this.longitude,
   });
 
-  /// Latitud.
+  /// Latitud geográfica.
   final double latitude;
 
-  /// Longitud.
+  /// Longitud geográfica.
   final double longitude;
 }

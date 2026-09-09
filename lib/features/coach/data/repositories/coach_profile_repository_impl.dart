@@ -136,12 +136,35 @@ class CoachProfileRepositoryImpl implements CoachProfileRepository {
     required CoachLocation? location,
     required bool available,
   }) async {
-    // Normaliza las especialidades eliminando espacios
-    // y valores vacíos.
-    final normalizedSpecialties = specialties
-        .map((specialty) => specialty.trim())
-        .where((specialty) => specialty.isNotEmpty)
-        .toList();
+    // Normaliza las especialidades antes de persistirlas.
+//
+// Se eliminan:
+// - Espacios al inicio y al final.
+// - Valores vacíos.
+// - Duplicados, sin distinguir mayúsculas de minúsculas.
+//
+// Se conserva el primer texto recibido para mantener
+// la presentación original de la especialidad.
+    final normalizedSpecialties = <String>[];
+    final specialtyKeys = <String>{};
+
+    for (final specialty in specialties) {
+      // Elimina espacios innecesarios.
+      final normalized = specialty.trim();
+
+      // Ignora especialidades vacías.
+      if (normalized.isEmpty) {
+        continue;
+      }
+
+      // Utiliza una clave normalizada para detectar duplicados.
+      final key = normalized.toLowerCase();
+
+      // Solo agrega la primera aparición de cada especialidad.
+      if (specialtyKeys.add(key)) {
+        normalizedSpecialties.add(normalized);
+      }
+    }
 
     // Normaliza la biografía.
     final normalizedBio = bio?.trim();

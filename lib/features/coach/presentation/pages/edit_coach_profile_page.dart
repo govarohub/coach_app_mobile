@@ -4,47 +4,71 @@ import 'package:go_router/go_router.dart';
 
 import '../../../authentication/presentation/providers/auth_state_provider.dart';
 import '../../domain/entities/coach_profile.dart';
+import '../../domain/entities/coach_specialty.dart';
+import '../../domain/entities/coach_specialty_catalog.dart';
 import 'coach_profile_provider.dart';
 
-/// ---------------------------------------------------------------------------
-/// Coach App Mobile
-///
-/// Archivo: edit_coach_profile_page.dart
-///
-/// CK-010.11
-///
-/// Formulario para editar la información profesional del Coach.
-/// ---------------------------------------------------------------------------
-
+/// Página de edición del perfil profesional.
 class EditCoachProfilePage extends ConsumerStatefulWidget {
-  const EditCoachProfilePage({
-    super.key,
-  });
+  const EditCoachProfilePage({super.key});
 
   @override
   ConsumerState<EditCoachProfilePage> createState() =>
       _EditCoachProfilePageState();
 }
 
+/// Estado de la página de edición.
 class _EditCoachProfilePageState
     extends ConsumerState<EditCoachProfilePage> {
+  /// Clave para validar el formulario.
   final _formKey = GlobalKey<FormState>();
 
-  // Controladores de los campos del formulario.
-  final _specialtiesController = TextEditingController();
-  final _experienceController = TextEditingController();
-  final _hourlyRateController = TextEditingController();
-  final _bioController = TextEditingController();
-  final _latitudeController = TextEditingController();
-  final _longitudeController = TextEditingController();
+  /// Controlador de experiencia.
+  late final TextEditingController _experienceController;
 
-  bool _available = false;
+  /// Controlador de tarifa.
+  late final TextEditingController _hourlyRateController;
+
+  /// Controlador de biografía.
+  late final TextEditingController _bioController;
+
+  /// Controlador de latitud.
+  late final TextEditingController _latitudeController;
+
+  /// Controlador de longitud.
+  late final TextEditingController _longitudeController;
+
+  /// Especialidades seleccionadas actualmente.
+  final List<String> _selectedSpecialties = <String>[];
+
+  /// Indica si los datos iniciales del perfil ya fueron cargados.
+  ///
+  /// Es independiente de la cantidad de especialidades, porque la lista
+  /// puede quedar vacía temporalmente cuando el usuario elimina una.
   bool _initialized = false;
+
+  /// Indica si el perfil está siendo guardado.
+  ///
+  /// Evita ejecuciones simultáneas y permite mostrar al usuario
+  /// que la operación continúa en proceso.
   bool _saving = false;
 
   @override
+  void initState() {
+    super.initState();
+
+    _experienceController = TextEditingController();
+    _hourlyRateController = TextEditingController();
+    _bioController = TextEditingController();
+    _latitudeController = TextEditingController();
+    _longitudeController = TextEditingController();
+
+    // La carga inicial de los datos se realiza posteriormente desde build().
+  }
+
+  @override
   void dispose() {
-    _specialtiesController.dispose();
+    // Liberamos los controladores al cerrar la pantalla.
     _experienceController.dispose();
     _hourlyRateController.dispose();
     _bioController.dispose();
@@ -54,152 +78,312 @@ class _EditCoachProfilePageState
     super.dispose();
   }
 
-  /// Inicializa el formulario con la información actual del Coach.
-  void _initializeForm(CoachProfile profile) {
-    if (_initialized) {
+  /// Inicializa los campos una sola vez con los datos actuales del perfil.
+  void _initializeFields(CoachProfile profile) {
+    if (_experienceController.text.isEmpty) {
+      _experienceController.text = profile.experienceYears.toString();
+    }
+
+    if (_hourlyRateController.text.isEmpty) {
+      _hourlyRateController.text = profile.hourlyRate.toString();
+    }
+
+    if (_bioController.text.isEmpty) {
+      _bioController.text = profile.bio ?? '';
+    }
+
+    if (_latitudeController.text.isEmpty && profile.location != null) {
+      _latitudeController.text = profile.location!.latitude.toString();
+    }
+
+    if (_longitudeController.text.isEmpty && profile.location != null) {
+      _longitudeController.text = profile.location!.longitude.toString();
+    }
+
+    // Las especialidades se cargan una sola vez.
+    //
+    // No debemos usar _selectedSpecialties.isEmpty como indicador de
+    // inicialización, porque el usuario puede eliminar temporalmente todas
+    // las especialidades y el siguiente rebuild las volvería a agregar.
+    if (!_initialized) {
+      _selectedSpecialties.addAll(profile.specialties);
+      _initialized = true;
+    }
+  }
+
+  /// Abre el selector de especialidades.
+  Future<void> _selectSpecialties() async {
+    // El catálogo central contiene las nuevas especialidades disponibles.
+    final catalog = CoachSpecialtyCatalog.items;
+
+    // Si el catálogo está vacío, conservamos las especialidades que ya tiene
+    // este perfil como opciones administrables. Esto permite recuperar una
+    // especialidad eliminada temporalmente sin inventar valores del catálogo.
+    final existingSpecialties = _selectedSpecialties
+        .map(
+          (specialtyId) => CoachSpecialty(
+        id: specialtyId,
+        name: specialtyId,
+      ),
+    )
+        .toList();
+
+    final catalogIds = catalog
+        .map((specialty) => specialty.id.trim().toLowerCase())
+        .toSet();
+
+    final availableSpecialties = <CoachSpecialty>[
+      ...catalog,
+      ...existingSpecialties.where(
+            (specialty) =>
+        !catalogIds.contains(specialty.id.trim().toLowerCase()),
+      ),
+    ];
+
+    // Si no existen opciones del catálogo ni especialidades actuales,
+    // informamos al usuario que todavía no hay opciones disponibles.
+    if (availableSpecialties.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'El catálogo de especialidades todavía no contiene opciones.',
+          ),
+        ),
+      );
       return;
     }
 
-    _specialtiesController.text = profile.specialties.join(', ');
+    // Copia temporal para permitir cancelar sin modificar la selección actual.
+    final temporarySelection = <String>{
+      ..._selectedSpecialties,
+    };
 
-    _experienceController.text =
-        profile.experienceYears.toString();
+    final result = await showDialog<Set<String>>(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Seleccionar especialidades'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: availableSpecialties.map((specialty) {
+                    final selected = temporarySelection.contains(
+                      specialty.id,
+                    );
 
-    _hourlyRateController.text =
-        profile.hourlyRate.toStringAsFixed(2);
+                    return CheckboxListTile(
+                      value: selected,
+                      title: Text(specialty.name),
+                      contentPadding: EdgeInsets.zero,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          if (value == true) {
+                            temporarySelection.add(specialty.id);
+                          } else {
+                            temporarySelection.remove(specialty.id);
+                          }
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    context.pop();
+                  },
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    context.pop(temporarySelection);
+                  },
+                  child: const Text('Aceptar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
 
-    _bioController.text = profile.bio ?? '';
-
-    _available = profile.available;
-
-    if (profile.location != null) {
-      _latitudeController.text =
-          profile.location!.latitude.toString();
-
-      _longitudeController.text =
-          profile.location!.longitude.toString();
+    // Si el usuario canceló, conservamos la selección original.
+    if (result == null) {
+      return;
     }
 
-    _initialized = true;
+    setState(() {
+      _selectedSpecialties
+        ..clear()
+        ..addAll(result);
+    });
   }
 
   /// Guarda la información profesional del Coach.
-  Future<void> _save(String coachId) async {
-    // Valida primero todos los campos del formulario.
+  Future<void> _save() async {
+    // Evita iniciar otra operación mientras existe un guardado en curso.
+    if (_saving) {
+      return;
+    }
+
+    // Valida primero los campos del formulario.
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    // Convierte el texto de especialidades en una lista.
-    final specialties = _specialtiesController.text
-        .split(',')
-        .map((value) => value.trim())
-        .where((value) => value.isNotEmpty)
-        .toList();
+    // Un Coach debe conservar al menos una especialidad para poder guardar.
+    // Se permite quitar una especialidad de la selección temporal, pero no
+    // completar el guardado cuando la lista queda vacía.
+    if (_selectedSpecialties.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Debes seleccionar al menos una especialidad.',
+          ),
+        ),
+      );
+      return;
+    }
 
-    // Convierte los años de experiencia a entero.
-    final experienceYears = int.tryParse(
+    final user = ref.read(authStateProvider).value;
+
+    // Verifica que exista una sesión válida.
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'No existe un usuario autenticado.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    final experience = int.tryParse(
       _experienceController.text.trim(),
     );
 
-    // Convierte la tarifa por hora a decimal.
     final hourlyRate = double.tryParse(
-      _hourlyRateController.text
-          .trim()
-          .replaceAll(',', '.'),
+      _hourlyRateController.text.trim().replaceAll(',', '.'),
     );
 
-    // Obtiene los valores de ubicación.
-    final latitudeText = _latitudeController.text.trim();
-    final longitudeText = _longitudeController.text.trim();
-
-    final latitude = latitudeText.isEmpty
-        ? null
-        : double.tryParse(
-      latitudeText.replaceAll(',', '.'),
+    final latitude = double.tryParse(
+      _latitudeController.text.trim().replaceAll(',', '.'),
     );
 
-    final longitude = longitudeText.isEmpty
-        ? null
-        : double.tryParse(
-      longitudeText.replaceAll(',', '.'),
+    final longitude = double.tryParse(
+      _longitudeController.text.trim().replaceAll(',', '.'),
     );
 
-    // Estas validaciones adicionales protegen el proceso de guardado.
-    if (experienceYears == null || hourlyRate == null) {
+    // La experiencia y tarifa son datos obligatorios.
+    if (experience == null || experience < 0) {
       return;
     }
 
-    if ((latitudeText.isNotEmpty && latitude == null) ||
-        (longitudeText.isNotEmpty && longitude == null)) {
-      _showMessage(
-        'La latitud y longitud deben ser números válidos.',
+    if (hourlyRate == null || hourlyRate <= 0) {
+      return;
+    }
+
+    // La ubicación es opcional.
+    CoachLocation? location;
+
+    if (latitude != null || longitude != null) {
+      // Si se captura una coordenada, ambas deben existir.
+      if (latitude == null || longitude == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'La latitud y longitud deben capturarse juntas.',
+            ),
+          ),
+        );
+        return;
+      }
+
+      location = CoachLocation(
+        latitude: latitude,
+        longitude: longitude,
       );
-      return;
     }
 
-    // La ubicación debe enviarse completa o permanecer vacía.
-    if ((latitude == null) != (longitude == null)) {
-      _showMessage(
-        'Ingresa latitud y longitud juntas o deja ambas vacías.',
-      );
-      return;
-    }
-
+    // Activa el estado de carga antes de comunicarse con Firestore.
     setState(() {
       _saving = true;
     });
 
     try {
-      // Obtiene el controller del Provider.
-      //
-      // El controller NO es un Family, por eso se utiliza
-      // coachProfileControllerProvider.notifier.
+      // Las especialidades seleccionadas continúan pasando
+      // por el Controller y Repository existentes.
       await ref
           .read(coachProfileControllerProvider.notifier)
           .updateProfile(
-        coachId: coachId,
-        specialties: specialties,
-        experienceYears: experienceYears,
+        coachId: user.id,
+        specialties: List<String>.from(_selectedSpecialties),
+        experienceYears: experience,
         hourlyRate: hourlyRate,
-        bio: _bioController.text,
-        location: latitude != null && longitude != null
-            ? CoachLocation(
-          latitude: latitude,
-          longitude: longitude,
-        )
-            : null,
-        available: _available,
-      );
-
-      // Recarga el perfil para mostrar inmediatamente
-      // la información actualizada.
-      ref.invalidate(
-        coachProfileProvider(coachId),
+        bio: _bioController.text.trim().isEmpty
+            ? null
+            : _bioController.text.trim(),
+        location: location,
+        available: true,
       );
 
       if (!mounted) {
         return;
       }
 
-      _showMessage(
-        'Perfil profesional actualizado correctamente.',
+      // El Controller utiliza AsyncValue.guard(), por lo que
+      // cualquier error de Repository/Firestore queda reflejado
+      // en su estado.
+      final state = ref.read(
+        coachProfileControllerProvider,
       );
 
-      // Regresa a la pantalla anterior mediante GoRouter.
+      if (state.hasError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'No fue posible actualizar el perfil: ${state.error}',
+            ),
+          ),
+        );
+        return;
+      }
+
+      // Fuerza la lectura nuevamente para obtener los datos
+      // realmente almacenados en Firestore.
+      ref.invalidate(
+        coachProfileProvider(user.id),
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Perfil profesional actualizado correctamente.',
+          ),
+        ),
+      );
+
+      // Regresa al perfil después de guardar correctamente.
       context.pop(true);
     } catch (error) {
-      // Maneja cualquier error producido durante la actualización.
+      // Error inesperado durante la operación de guardado.
       if (!mounted) {
         return;
       }
 
-      _showMessage(
-        'No fue posible actualizar el perfil: $error',
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'No fue posible actualizar el perfil: $error',
+          ),
+        ),
       );
     } finally {
-      // Finaliza el estado de guardado independientemente
-      // de si la operación terminó correctamente o con error.
+      // Libera el estado de carga independientemente del resultado.
       if (mounted) {
         setState(() {
           _saving = false;
@@ -208,285 +392,210 @@ class _EditCoachProfilePageState
     }
   }
 
-  /// Muestra un mensaje mediante SnackBar.
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(
-      authStateProvider,
+    final user = ref.watch(authStateProvider).value;
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(
+          child: Text('No hay un usuario autenticado.'),
+        ),
+      );
+    }
+
+    final profileAsync = ref.watch(
+      coachProfileProvider(user.id),
     );
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Editar perfil profesional',
-        ),
+        title: const Text('Editar perfil profesional'),
       ),
-      body: authState.when(
+      body: profileAsync.when(
         loading: () => const Center(
           child: CircularProgressIndicator(),
         ),
         error: (error, stackTrace) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-              'No fue posible validar la sesión: $error',
-              textAlign: TextAlign.center,
-            ),
+          child: Text(
+            'No fue posible cargar el perfil: $error',
           ),
         ),
-        data: (user) {
-          if (user == null) {
-            return const Center(
-              child: Text(
-                'No existe un usuario autenticado.',
-              ),
-            );
-          }
+        data: (profile) {
+          // Inicializamos los controles con los datos actuales.
+          _initializeFields(profile);
 
-          final coachAsync = ref.watch(
-            coachProfileProvider(user.id),
-          );
-
-          return coachAsync.when(
-            loading: () => const Center(
-              child: CircularProgressIndicator(),
-            ),
-            error: (error, stackTrace) => Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(
-                  'No fue posible cargar el perfil profesional: $error',
-                  textAlign: TextAlign.center,
+          return Form(
+            key: _formKey,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                /// -------------------------------------------------------------
+                /// Especialidades
+                /// -------------------------------------------------------------
+                const Text(
+                  'Especialidades',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            ),
-            data: (profile) {
-              _initializeForm(profile);
 
-              return Form(
-                key: _formKey,
-                child: ListView(
-                  padding: const EdgeInsets.all(20),
-                  children: [
-                    TextFormField(
-                      controller: _specialtiesController,
-                      enabled: !_saving,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Especialidades',
-                        hintText:
-                        'Ej. Coaching, Liderazgo, Desarrollo personal',
-                        helperText:
-                        'Separa las especialidades con comas.',
-                      ),
-                      validator: (value) {
-                        final specialties = value
-                            ?.split(',')
-                            .map((item) => item.trim())
-                            .where(
-                              (item) => item.isNotEmpty,
-                        )
-                            .toList() ??
-                            [];
+                const SizedBox(height: 8),
 
-                        if (specialties.isEmpty) {
-                          return 'Ingresa al menos una especialidad.';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    TextFormField(
-                      controller: _experienceController,
-                      enabled: !_saving,
-                      keyboardType: TextInputType.number,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Años de experiencia',
-                      ),
-                      validator: (value) {
-                        final years = int.tryParse(
-                          value?.trim() ?? '',
-                        );
-
-                        if (years == null || years < 0) {
-                          return 'Ingresa un número de años válido.';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    TextFormField(
-                      controller: _hourlyRateController,
-                      enabled: !_saving,
-                      keyboardType:
-                      const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Tarifa por hora',
-                        prefixText: '\$ ',
-                      ),
-                      validator: (value) {
-                        final rate = double.tryParse(
-                          (value ?? '')
-                              .trim()
-                              .replaceAll(',', '.'),
-                        );
-
-                        if (rate == null || rate < 0) {
-                          return 'Ingresa una tarifa válida.';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    TextFormField(
-                      controller: _bioController,
-                      enabled: !_saving,
-                      minLines: 4,
-                      maxLines: 7,
-                      decoration: const InputDecoration(
-                        labelText: 'Biografía profesional',
-                        alignLabelWithHint: true,
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      value: _available,
-                      onChanged: _saving
-                          ? null
-                          : (value) {
-                        setState(() {
-                          _available = value;
-                        });
-                      },
-                      title: const Text(
-                        'Disponible para sesiones',
-                      ),
-                      subtitle: Text(
-                        _available
-                            ? 'Actualmente disponible'
-                            : 'No disponible',
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    TextFormField(
-                      controller: _latitudeController,
-                      enabled: !_saving,
-                      keyboardType:
-                      const TextInputType.numberWithOptions(
-                        decimal: true,
-                        signed: true,
-                      ),
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        labelText: 'Latitud',
-                      ),
-                      validator: (value) {
-                        if (value == null ||
-                            value.trim().isEmpty) {
-                          return null;
-                        }
-
-                        final latitude = double.tryParse(
-                          value.trim().replaceAll(',', '.'),
-                        );
-
-                        if (latitude == null ||
-                            latitude < -90 ||
-                            latitude > 90) {
-                          return 'Latitud fuera de rango.';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    TextFormField(
-                      controller: _longitudeController,
-                      enabled: !_saving,
-                      keyboardType:
-                      const TextInputType.numberWithOptions(
-                        decimal: true,
-                        signed: true,
-                      ),
-                      textInputAction: TextInputAction.done,
-                      decoration: const InputDecoration(
-                        labelText: 'Longitud',
-                      ),
-                      validator: (value) {
-                        if (value == null ||
-                            value.trim().isEmpty) {
-                          return null;
-                        }
-
-                        final longitude = double.tryParse(
-                          value.trim().replaceAll(',', '.'),
-                        );
-
-                        if (longitude == null ||
-                            longitude < -180 ||
-                            longitude > 180) {
-                          return 'Longitud fuera de rango.';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    FilledButton.icon(
-                      onPressed: _saving
-                          ? null
-                          : () => _save(user.id),
-                      icon: _saving
-                          ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                        ),
-                      )
-                          : const Icon(
-                        Icons.save_outlined,
-                      ),
-                      label: Text(
-                        _saving
-                            ? 'Guardando...'
-                            : 'Guardar cambios',
-                      ),
-                    ),
-                  ],
+                OutlinedButton.icon(
+                  // Evita abrir el selector mientras se está guardando.
+                  onPressed: _saving ? null : _selectSpecialties,
+                  icon: const Icon(Icons.category_outlined),
+                  label: Text(
+                    _selectedSpecialties.isEmpty
+                        ? 'Seleccionar especialidades'
+                        : 'Modificar especialidades',
+                  ),
                 ),
-              );
-            },
+
+                if (_selectedSpecialties.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _selectedSpecialties.map((specialtyId) {
+                      // Busca el nombre visible dentro del catálogo.
+                      final catalogSpecialty =
+                      CoachSpecialtyCatalog.items.where(
+                            (specialty) => specialty.id == specialtyId,
+                      );
+
+                      final name = catalogSpecialty.isNotEmpty
+                          ? catalogSpecialty.first.name
+                          : specialtyId;
+
+                      return Chip(
+                        label: Text(name),
+                        onDeleted: () {
+                          setState(() {
+                            _selectedSpecialties.remove(specialtyId);
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
+
+                const SizedBox(height: 24),
+
+                /// -------------------------------------------------------------
+                /// Experiencia
+                /// -------------------------------------------------------------
+                TextFormField(
+                  controller: _experienceController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Años de experiencia',
+                  ),
+                  validator: (value) {
+                    final experience = int.tryParse(
+                      value?.trim() ?? '',
+                    );
+
+                    if (experience == null || experience < 0) {
+                      return 'Captura un número válido.';
+                    }
+
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                /// -------------------------------------------------------------
+                /// Tarifa
+                /// -------------------------------------------------------------
+                TextFormField(
+                  controller: _hourlyRateController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Tarifa por hora',
+                  ),
+                  validator: (value) {
+                    final rate = double.tryParse(
+                      value?.trim().replaceAll(',', '.') ?? '',
+                    );
+
+                    if (rate == null || rate <= 0) {
+                      return 'Captura una tarifa válida.';
+                    }
+
+                    return null;
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                /// -------------------------------------------------------------
+                /// Biografía
+                /// -------------------------------------------------------------
+                TextFormField(
+                  controller: _bioController,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Biografía',
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                /// -------------------------------------------------------------
+                /// Ubicación
+                /// -------------------------------------------------------------
+                TextFormField(
+                  controller: _latitudeController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                    signed: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Latitud',
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                TextFormField(
+                  controller: _longitudeController,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                    signed: true,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Longitud',
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                /// -------------------------------------------------------------
+                /// Guardar
+                /// -------------------------------------------------------------
+                FilledButton(
+                  // Mientras se guarda, se bloquea el botón para evitar
+                  // solicitudes duplicadas a Firestore.
+                  onPressed: _saving ? null : _save,
+                  child: _saving
+                      ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                    ),
+                  )
+                      : const Text('Guardar cambios'),
+                ),
+              ],
+            ),
           );
         },
       ),
