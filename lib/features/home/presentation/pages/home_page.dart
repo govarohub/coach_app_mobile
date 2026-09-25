@@ -228,11 +228,14 @@ class _HomeActions extends StatelessWidget {
         _HomeActionCard(
           icon: Icons.search,
           title: 'Buscar un coach',
-          description:
-          'Encuentra un coach de acuerdo con tus necesidades.',
+          description: 'Encuentra un coach de acuerdo con tus necesidades.',
           onPressed: () {
-            // La búsqueda será implementada en CK-012.
-            context.go(AppRoutes.coachSearch);
+            // CK-012.11:
+            // Abre la búsqueda como navegación hacia adelante mediante GoRouter.
+            //
+            // Se utiliza push para conservar el Dashboard en la pila de
+            // navegación y permitir regresar posteriormente al Inicio.
+            context.push(AppRoutes.coachSearch);
           },
         ),
 
@@ -254,11 +257,9 @@ class _HomeActions extends StatelessWidget {
         _HomeActionCard(
           icon: Icons.favorite_border,
           title: 'Mis favoritos',
-          description:
-          'Accede rápidamente a tus coaches favoritos.',
+          description: 'Accede rápidamente a tus coaches favoritos.',
           onPressed: () {
-            // Favoritos será implementado en CK-014.
-            context.go(AppRoutes.favorites);
+            context.push(AppRoutes.favorites);
           },
         ),
       ],

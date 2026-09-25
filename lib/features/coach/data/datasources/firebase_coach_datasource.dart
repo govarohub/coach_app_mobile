@@ -86,6 +86,32 @@ class FirebaseCoachDataSource {
     return _firestore.collection('coaches').doc(coachId).get();
   }
 
+  /// Obtiene todos los documentos de la colección de Coaches.
+  ///
+  /// CK-012.2:
+  /// Esta consulta solamente recupera los Coaches existentes.
+  ///
+  /// Los filtros de disponibilidad, verificación, especialidad
+  /// y ubicación se implementarán en los siguientes sub-CK.
+  Future<QuerySnapshot<Map<String, dynamic>>> getCoachDocuments() {
+    return _firestore.collection('coaches').get();
+  }
+
+  /// ---------------------------------------------------------------------------
+  /// CK-013.3
+  ///
+  /// Obtiene el documento de usuario asociado al Coach.
+  ///
+  /// El nombre pertenece a `users/{coachId}` y no al documento profesional
+  /// `coaches/{coachId}`. De esta forma evitamos duplicar información.
+  /// ---------------------------------------------------------------------------
+  Future<DocumentSnapshot<Map<String, dynamic>>> getCoachUserDocument(
+      String coachId,
+      ) {
+    return _firestore.collection('users').doc(coachId).get();
+  }
+
+
   /// Actualiza únicamente la tarifa por hora del Coach.
   ///
   /// CK-010.6:

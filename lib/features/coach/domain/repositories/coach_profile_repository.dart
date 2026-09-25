@@ -1,14 +1,37 @@
+import '../entities/coach_public_identity.dart';
 import '../entities/coach_profile.dart';
 
-/// Contrato para consultar y actualizar el perfil profesional del Coach.
+/// ---------------------------------------------------------------------------
+/// Coach App Mobile
+///
+/// Archivo: coach_profile_repository.dart
+///
+/// Contrato de acceso a los datos del perfil profesional del Coach.
+///
+/// CK-012.2
+/// Consulta de Coaches desde Firestore.
+/// ---------------------------------------------------------------------------
+
 abstract interface class CoachProfileRepository {
-  /// Obtiene el perfil profesional asociado al Coach autenticado.
+  /// Obtiene el perfil profesional de un Coach específico.
   Future<CoachProfile> getProfile(String coachId);
 
-  /// Actualiza la información profesional editable del Coach.
+  /// Obtiene todos los perfiles profesionales registrados.
   ///
-  /// Los campos rating y verified no forman parte de la actualización
-  /// porque no son datos administrados directamente por el Coach.
+  /// CK-012.2:
+  /// La consulta recupera los Coaches existentes sin aplicar
+  /// filtros adicionales.
+  Future<List<CoachProfile>> getCoaches();
+
+
+  /// -------------------------------------------------------------------------
+  /// CK-013.3
+  ///
+  /// Obtiene la identidad pública del Coach.
+  /// -------------------------------------------------------------------------
+  Future<CoachPublicIdentity> getPublicIdentity(String coachId);
+
+  /// Actualiza la información profesional del Coach.
   Future<CoachProfile> updateProfile({
     required String coachId,
     required List<String> specialties,

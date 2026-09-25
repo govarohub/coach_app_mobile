@@ -33,13 +33,28 @@ abstract final class AppRoutes {
   // Coach
   // ---------------------------------------------------------------------------
 
+  /// Perfil profesional privado del Coach autenticado.
   static const coachProfile = '/coach-profile';
+
+  /// Edición del perfil profesional del Coach.
+  static const editCoachProfile = '/coach-profile/edit';
+
+  /// Búsqueda pública de Coaches.
+  static const coachSearch = '/coach-search';
+
+  /// Perfil público de un Coach específico.
+  ///
+  /// El parámetro coachId identifica al Coach que se desea consultar.
+  static const coachPublicProfile =
+      '/coach-public-profile/:coachId';
 
   // ---------------------------------------------------------------------------
   // Reservations
   // ---------------------------------------------------------------------------
 
   static const reservation = '/reservation';
+
+  static const reservations = '/reservations';
 
   // ---------------------------------------------------------------------------
   // Chat
@@ -51,10 +66,10 @@ abstract final class AppRoutes {
   // Profile
   // ---------------------------------------------------------------------------
 
-  /// Pantalla principal del perfil del usuario.
+  /// Perfil principal del usuario.
   static const profile = '/profile';
 
-  /// Pantalla para editar los datos personales del usuario.
+  /// Edición del perfil del usuario.
   static const editProfile = '/profile/edit';
 
   // ---------------------------------------------------------------------------
@@ -63,24 +78,12 @@ abstract final class AppRoutes {
 
   static const settings = '/settings';
 
-  // -------------------------------------------------------------------------
-  // Dashboard
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Favorites
+  // ---------------------------------------------------------------------------
 
-  /// Búsqueda de coaches.
+  /// Pantalla "Mis Favoritos".
   ///
-  /// La pantalla será implementada en CK-012.
-  static const coachSearch = '/coach-search';
-
-  /// Reservaciones del cliente.
-  ///
-  /// La funcionalidad completa será implementada en CK-017.
-  static const reservations = '/reservations';
-
-  /// Coaches favoritos.
-  ///
-  /// La funcionalidad será implementada en CK-014.
+  /// CK-014.
   static const favorites = '/favorites';
-
-  static const editCoachProfile = '/coach-profile/edit';
 }

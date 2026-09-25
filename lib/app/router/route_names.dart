@@ -33,7 +33,17 @@ abstract final class RouteNames {
   // Coach
   // ---------------------------------------------------------------------------
 
+  /// Perfil profesional privado del Coach autenticado.
   static const coachProfile = 'coach-profile';
+
+  /// Edición del perfil profesional del Coach.
+  static const editCoachProfile = 'edit-coach-profile';
+
+  /// Búsqueda pública de Coaches.
+  static const coachSearch = 'coach-search';
+
+  /// Perfil público de un Coach específico.
+  static const coachPublicProfile = 'coach-public-profile';
 
   // ---------------------------------------------------------------------------
   // Reservations
@@ -41,20 +51,21 @@ abstract final class RouteNames {
 
   static const reservation = 'reservation';
 
+  static const reservations = 'reservations';
+
   // ---------------------------------------------------------------------------
   // Chat
   // ---------------------------------------------------------------------------
 
   static const chat = 'chat';
 
-  /// Profile
+  // ---------------------------------------------------------------------------
+  // Profile
+  // ---------------------------------------------------------------------------
 
-  /// Pantalla principal del perfil.
   static const profile = 'profile';
 
-  /// Pantalla para editar los datos personales.
   static const editProfile = 'edit-profile';
-
 
   // ---------------------------------------------------------------------------
   // Settings
@@ -62,18 +73,12 @@ abstract final class RouteNames {
 
   static const settings = 'settings';
 
-  // -------------------------------------------------------------------------
-  // Dashboard
-  // -------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
+  // Favorites
+  // ---------------------------------------------------------------------------
 
-  /// Búsqueda de coaches.
-  static const coachSearch = 'coach-search';
-
-  /// Reservaciones.
-  static const reservations = 'reservations';
-
-  /// Favoritos.
+  /// Pantalla "Mis Favoritos".
+  ///
+  /// CK-014.
   static const favorites = 'favorites';
-
-  static const editCoachProfile = 'edit-coach-profile';
 }

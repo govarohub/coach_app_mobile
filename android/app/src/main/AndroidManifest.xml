@@ -1,4 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- CK-012.6: Permiso para obtener la ubicación del usuario. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
+    <!-- CK-012.6: Permiso para ubicación aproximada. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <application
         android:label="coach_app_mobile"
         android:name="${applicationName}"

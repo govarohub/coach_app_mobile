@@ -4,6 +4,7 @@ import '../../data/datasources/firebase_coach_datasource.dart';
 import '../../data/repositories/coach_profile_repository_impl.dart';
 import '../../domain/entities/coach_profile.dart';
 import '../../domain/repositories/coach_profile_repository.dart';
+import '../../domain/entities/coach_public_identity.dart';
 
 
 
@@ -37,6 +38,27 @@ FutureProvider.family<CoachProfile, String>((ref, coachId) async {
 
   return repository.getProfile(coachId);
 });
+
+/// ---------------------------------------------------------------------------
+/// CK-013.3
+///
+/// Provider que obtiene la identidad pública del Coach.
+///
+/// Se mantiene en el archivo de providers existente para respetar
+/// la estructura actual del proyecto.
+/// ---------------------------------------------------------------------------
+final coachPublicIdentityProvider =
+FutureProvider.family<CoachPublicIdentity, String>(
+      (ref, coachId) async {
+    // Utiliza el Repository existente.
+    final repository = ref.watch(
+      coachProfileRepositoryProvider,
+    );
+
+    // Obtiene únicamente la identidad pública solicitada.
+    return repository.getPublicIdentity(coachId);
+  },
+);
 
 /// Controller encargado de actualizar el perfil profesional.
 class CoachProfileController extends AsyncNotifier<void> {
