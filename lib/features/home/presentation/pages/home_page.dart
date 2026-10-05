@@ -248,7 +248,7 @@ class _HomeActions extends StatelessWidget {
           'Consulta y administra tus próximas sesiones.',
           onPressed: () {
             // El calendario e historial serán implementados en CK-017.
-            context.go(AppRoutes.reservations);
+            context.push(AppRoutes.reservations);
           },
         ),
 

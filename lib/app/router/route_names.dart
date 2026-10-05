@@ -45,6 +45,9 @@ abstract final class RouteNames {
   /// Perfil público de un Coach específico.
   static const coachPublicProfile = 'coach-public-profile';
 
+  /// Ruta nominal para la disponibilidad del Coach.
+  static const coachSchedule = 'coach-schedule';
+
   // ---------------------------------------------------------------------------
   // Reservations
   // ---------------------------------------------------------------------------
@@ -78,7 +81,7 @@ abstract final class RouteNames {
   // ---------------------------------------------------------------------------
 
   /// Pantalla "Mis Favoritos".
-  ///
-  /// CK-014.
   static const favorites = 'favorites';
+
+
 }

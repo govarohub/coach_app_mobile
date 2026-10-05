@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../authentication/presentation/providers/auth_state_provider.dart';
 import '../../../profile/presentation/pages/profile_provider.dart';
 import '../../../../app/router/app_routes.dart';
+import '../../../../app/router/route_names.dart';
 import '../../domain/entities/coach_profile.dart';
 import 'coach_profile_provider.dart';
 
@@ -88,7 +89,9 @@ class CoachProfilePage extends ConsumerWidget {
                       photoUrl: profile?.photoUrl,
                       verified: coach.verified,
                     ),
+
                     const SizedBox(height: 24),
+
                     _InformationCard(
                       title: 'Información profesional',
                       child: Column(
@@ -97,7 +100,8 @@ class CoachProfilePage extends ConsumerWidget {
                             icon: Icons.workspace_premium_outlined,
                             label: 'Experiencia',
                             value:
-                            '${coach.experienceYears} ${coach.experienceYears == 1 ? 'año' : 'años'}',
+                            '${coach.experienceYears} '
+                                '${coach.experienceYears == 1 ? 'año' : 'años'}',
                           ),
                           _InformationRow(
                             icon: Icons.attach_money,
@@ -120,7 +124,9 @@ class CoachProfilePage extends ConsumerWidget {
                         ],
                       ),
                     ),
+
                     const SizedBox(height: 16),
+
                     _InformationCard(
                       title: 'Especialidades',
                       child: coach.specialties.isEmpty
@@ -139,7 +145,9 @@ class CoachProfilePage extends ConsumerWidget {
                             .toList(),
                       ),
                     ),
+
                     const SizedBox(height: 16),
+
                     _InformationCard(
                       title: 'Biografía profesional',
                       child: Text(
@@ -148,14 +156,45 @@ class CoachProfilePage extends ConsumerWidget {
                             : 'Sin biografía registrada.',
                       ),
                     ),
+
                     const SizedBox(height: 16),
+
                     _InformationCard(
                       title: 'Ubicación profesional',
                       child: _LocationView(
                         location: coach.location,
                       ),
                     ),
+
                     const SizedBox(height: 24),
+
+                    // -----------------------------------------------------------------
+                    // CK-015.10
+                    // Navegación hacia la disponibilidad del Coach.
+                    //
+                    // Se utiliza el ID del usuario autenticado como coachId.
+                    // El Router recibe este valor mediante `extra`.
+                    // -----------------------------------------------------------------
+                    FilledButton.icon(
+                      onPressed: () {
+                        context.pushNamed(
+                          RouteNames.coachSchedule,
+                          extra: user.id,
+                        );
+                      },
+                      icon: const Icon(
+                        Icons.calendar_month_outlined,
+                      ),
+                      label: const Text(
+                        'Disponibilidad / Horarios',
+                      ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // -----------------------------------------------------------------
+                    // Edición del perfil profesional.
+                    // -----------------------------------------------------------------
                     FilledButton.icon(
                       onPressed: () async {
                         final result = await context.push<bool>(
@@ -170,7 +209,9 @@ class CoachProfilePage extends ConsumerWidget {
                           ref.invalidate(profileProvider);
                         }
                       },
-                      icon: const Icon(Icons.edit_outlined),
+                      icon: const Icon(
+                        Icons.edit_outlined,
+                      ),
                       label: const Text(
                         'Editar perfil profesional',
                       ),
@@ -186,7 +227,10 @@ class CoachProfilePage extends ConsumerWidget {
   }
 }
 
+/// ---------------------------------------------------------------------------
 /// Encabezado del perfil profesional.
+/// ---------------------------------------------------------------------------
+
 class _ProfileHeader extends StatelessWidget {
   const _ProfileHeader({
     required this.name,
@@ -251,7 +295,10 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
+/// ---------------------------------------------------------------------------
 /// Tarjeta reutilizable para secciones del perfil.
+/// ---------------------------------------------------------------------------
+
 class _InformationCard extends StatelessWidget {
   const _InformationCard({
     required this.title,
@@ -282,7 +329,10 @@ class _InformationCard extends StatelessWidget {
   }
 }
 
+/// ---------------------------------------------------------------------------
 /// Fila de información profesional.
+/// ---------------------------------------------------------------------------
+
 class _InformationRow extends StatelessWidget {
   const _InformationRow({
     required this.icon,
@@ -320,7 +370,10 @@ class _InformationRow extends StatelessWidget {
   }
 }
 
+/// ---------------------------------------------------------------------------
 /// Presentación de la ubicación profesional.
+/// ---------------------------------------------------------------------------
+
 class _LocationView extends StatelessWidget {
   const _LocationView({
     required this.location,
@@ -351,7 +404,10 @@ class _LocationView extends StatelessWidget {
   }
 }
 
+/// ---------------------------------------------------------------------------
 /// Estado de error de la pantalla.
+/// ---------------------------------------------------------------------------
+
 class _ErrorView extends StatelessWidget {
   const _ErrorView({
     required this.message,

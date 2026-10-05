@@ -53,6 +53,19 @@ import '../../features/favorites/presentation/pages/favorites_page.dart';
 import 'app_routes.dart';
 import 'route_names.dart';
 
+/// Pantalla de disponibilidad del Coach.
+import '../../features/coach/presentation/pages/coach_schedule_page.dart';
+
+// ---------------------------------------------------------------------------
+// Reservation
+// ---------------------------------------------------------------------------
+
+import '../../features/reservation/presentation/pages/reservation_page.dart';
+
+// CK-016.11
+// Pantalla "Mis reservaciones".
+import '../../features/reservation/presentation/pages/reservations_page.dart';
+
 abstract final class AppRouter {
   AppRouter._();
 
@@ -211,14 +224,9 @@ abstract final class AppRouter {
       ),
 
       // -----------------------------------------------------------------------
-      // CK-013
-      //
       // Perfil público del Coach.
-      //
       // Recibe:
-      //
       // /coach-public-profile/:coachId
-      //
       // El coachId se obtiene de los pathParameters.
       // -----------------------------------------------------------------------
 
@@ -248,11 +256,8 @@ abstract final class AppRouter {
 
       // -----------------------------------------------------------------------
       // CK-014
-      //
       // Mis Favoritos.
-      //
       // Esta ruta corrige el error observado:
-      //
       // Ruta no encontrada:
       // /favorites
       // -----------------------------------------------------------------------
@@ -262,6 +267,62 @@ abstract final class AppRouter {
         name: RouteNames.favorites,
         builder: (context, state) => const FavoritesPage(),
       ),
+
+      // -------------------------------------------------------------------------
+      // CK-015.10
+      // Ruta de disponibilidad del Coach.
+      // Permite acceder a:
+      // - Consulta de horarios.
+      // - Creación.
+      // - Edición.
+      // - Bloqueo.
+      // - Desbloqueo.
+      // La pantalla recibe el coachId mediante `extra`.
+      // -------------------------------------------------------------------------
+      GoRoute(
+        path: AppRoutes.coachSchedule,
+        name: RouteNames.coachSchedule,
+        builder: (context, state) {
+          final coachId = state.extra as String;
+
+          return CoachSchedulePage(
+            coachId: coachId,
+          );
+        },
+      ),
+
+      GoRoute(
+        path: AppRoutes.reservation,
+        name: RouteNames.reservation,
+        builder: (context, state) {
+          // ---------------------------------------------------------------
+          // El coachId se recibe mediante `extra`.
+          //
+          // No se consulta Firebase desde el Router.
+          // ---------------------------------------------------------------
+          final coachId = state.extra as String;
+
+          return ReservationPage(
+            coachId: coachId,
+          );
+        },
+      ),
+
+      // ---------------------------------------------------------------------------
+      // Mis reservaciones.
+      //
+      // Esta ruta conecta AppRoutes.reservations con la pantalla que consulta
+      // las reservaciones del cliente autenticado mediante clientReservationsProvider.
+      // ---------------------------------------------------------------------------
+      GoRoute(
+        path: AppRoutes.reservations,
+        name: RouteNames.reservations,
+        builder: (context, state) {
+          return const ReservationsPage();
+        },
+      ),
+
+
     ],
 
     // -------------------------------------------------------------------------

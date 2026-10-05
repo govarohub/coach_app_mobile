@@ -2,51 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 
+import 'package:go_router/go_router.dart';
+import '../../../../app/router/route_names.dart';
+
 import '../../domain/entities/coach_profile.dart';
 import '../../../favorites/presentation/favorites_provider.dart';
 
 import 'coach_profile_provider.dart';
 import 'coach_search_provider.dart';
 
-/// ---------------------------------------------------------------------------
-/// Coach App Mobile
-///
-/// Archivo:
-/// lib/features/coach/presentation/pages/coach_public_profile_page.dart
-///
-/// CK-013
-///
-/// Perfil público de un Coach.
-///
-/// CK-013.3:
-/// - Obtiene y muestra el nombre real del Coach.
-///
-/// CK-013.4:
-/// - Obtiene y muestra la fotografía pública del Coach.
-///
-/// CK-013.5:
-/// - Muestra las especialidades.
-///
-/// CK-013.6:
-/// - Muestra experiencia y biografía.
-///
-/// CK-013.7:
-/// - Muestra tarifa y calificación.
-///
-/// CK-013.8:
-/// - Muestra disponibilidad y verificación.
-///
-/// CK-013.9:
-/// - Muestra ubicación profesional y calcula distancia.
-///
-/// CK-014.5:
-/// - Permite agregar o quitar el Coach de favoritos.
-///
-/// IMPORTANTE:
-/// - Se reutilizan los providers existentes.
-/// - No se accede directamente a Firebase desde la UI.
-/// - Favoritos utiliza FavoritesController.
-/// ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Coach App Mobile
+// Perfil público de un Coach.
+// IMPORTANTE:
+// - Se reutilizan los providers existentes.
+// - No se accede directamente a Firebase desde la UI.
+// - Favoritos utiliza FavoritesController.
+// ---------------------------------------------------------------------------
 
 class CoachPublicProfilePage extends ConsumerStatefulWidget {
   const CoachPublicProfilePage({
@@ -123,8 +95,6 @@ class _CoachPublicProfilePageState
   }
 
   /// -------------------------------------------------------------------------
-  /// CK-013.9
-  ///
   /// Calcula la distancia entre el usuario y el Coach.
   /// -------------------------------------------------------------------------
 
@@ -142,8 +112,6 @@ class _CoachPublicProfilePageState
   }
 
   /// -------------------------------------------------------------------------
-  /// CK-014.5
-  ///
   /// Construye el botón de favoritos.
   ///
   /// El estado visual depende de:
@@ -242,8 +210,6 @@ class _CoachPublicProfilePageState
         title: const Text('Perfil del Coach'),
 
         // ---------------------------------------------------------------------
-        // CK-014.5
-        //
         // Botón para agregar/quitar de favoritos.
         // ---------------------------------------------------------------------
 
@@ -605,6 +571,22 @@ class _CoachPublicProfilePageState
                     ),
                   ),
                 ],
+                const SizedBox(height: 24),
+
+                FilledButton.icon(
+                  onPressed: () {
+                    context.pushNamed(
+                      RouteNames.reservation,
+                      extra: widget.coachId,
+                    );
+                  },
+                  icon: const Icon(
+                    Icons.calendar_month_outlined,
+                  ),
+                  label: const Text(
+                    'Reservar sesión',
+                  ),
+                ),
               ],
             ),
           );

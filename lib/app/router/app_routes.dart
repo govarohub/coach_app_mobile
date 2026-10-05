@@ -43,7 +43,6 @@ abstract final class AppRoutes {
   static const coachSearch = '/coach-search';
 
   /// Perfil público de un Coach específico.
-  ///
   /// El parámetro coachId identifica al Coach que se desea consultar.
   static const coachPublicProfile =
       '/coach-public-profile/:coachId';
@@ -83,7 +82,9 @@ abstract final class AppRoutes {
   // ---------------------------------------------------------------------------
 
   /// Pantalla "Mis Favoritos".
-  ///
   /// CK-014.
   static const favorites = '/favorites';
+
+
+  static const String coachSchedule = '/coach/schedule';
 }
