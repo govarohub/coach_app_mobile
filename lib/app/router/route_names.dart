@@ -83,5 +83,8 @@ abstract final class RouteNames {
   /// Pantalla "Mis Favoritos".
   static const favorites = 'favorites';
 
+  /// Nombre nominal de la ruta "Mi agenda" del Coach.
+  /// -------------------------------------------------------------------------
+  static const coachAgenda = 'coach-agenda';
 
 }

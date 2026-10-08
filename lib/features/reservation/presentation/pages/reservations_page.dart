@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:go_router/go_router.dart';
+
+import '../../../coach/domain/entities/coach_schedule.dart';
 import 'reservation_provider.dart';
+import '../../domain/entities/reservation.dart';
 
 /// ---------------------------------------------------------------------------
 /// Coach App Mobile
@@ -10,168 +12,201 @@ import 'reservation_provider.dart';
 /// Archivo:
 /// lib/features/reservation/presentation/pages/reservations_page.dart
 ///
-/// CK-016.11
+/// CK-017.7
 ///
 /// Pantalla "Mis reservaciones".
 ///
 /// Responsabilidades:
 /// - Consultar las reservaciones del cliente autenticado.
-/// - Mostrar estado de carga.
-/// - Mostrar estado de error.
-/// - Mostrar estado vacío.
-/// - Mostrar las reservaciones existentes.
+/// - Separar próximas sesiones e historial.
+/// - Utilizar la fecha y hora real del horario asociado.
+/// - Mostrar loading, error, vacío y reintento.
+/// - Mantener la consulta dentro de los providers existentes del módulo.
 ///
 /// IMPORTANTE:
-/// - La pantalla no accede directamente a Firestore.
-/// - Utiliza el provider existente del módulo de reservaciones.
-/// - No se crea un DataSource ni Repository paralelo.
+/// - No accede directamente a Firebase.
+/// - No crea Repository ni DataSource paralelo.
 /// ---------------------------------------------------------------------------
 class ReservationsPage extends ConsumerWidget {
-  const ReservationsPage({
-    super.key,
-  });
+  const ReservationsPage({super.key});
 
   @override
-  Widget build(
-      BuildContext context,
-      WidgetRef ref,
-      ) {
+  Widget build(BuildContext context, WidgetRef ref) {
     /// -----------------------------------------------------------------------
-    /// Consulta las reservaciones del cliente autenticado.
+    /// CK-017.7
     ///
-    /// El provider existente obtiene el usuario autenticado y consulta
-    /// únicamente sus reservaciones.
+    /// El provider combina cada reservación con su horario para conocer la
+    /// fecha y hora real de la sesión.
     /// -----------------------------------------------------------------------
     final reservationsAsync = ref.watch(
-      clientReservationsProvider,
+      clientReservationsWithSchedulesProvider,
     );
 
     return Scaffold(
       appBar: AppBar(
-        // Regresa a la pantalla anterior mediante GoRouter.
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back,
-          ),
+          icon: const Icon(Icons.arrow_back),
           tooltip: 'Regresar',
-          onPressed: () {
-            context.pop();
-          },
+          onPressed: () => context.pop(),
         ),
-
-        title: const Text(
-          'Mis reservaciones',
-        ),
+        title: const Text('Mis reservaciones'),
       ),
       body: reservationsAsync.when(
-        /// -------------------------------------------------------------------
-        /// Estado de carga.
-        /// -------------------------------------------------------------------
-        loading: () {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
-        },
-
-        /// -------------------------------------------------------------------
-        /// Estado de error.
-        /// -------------------------------------------------------------------
+        loading: () => const Center(
+          child: CircularProgressIndicator(),
+        ),
         error: (error, stackTrace) {
           return _ReservationsErrorState(
             onRetry: () {
-              /// Reintenta la consulta utilizando el provider existente.
-              ref.invalidate(
-                clientReservationsProvider,
-              );
+              ref.invalidate(clientReservationsWithSchedulesProvider);
             },
           );
         },
-
-        /// -------------------------------------------------------------------
-        /// Datos obtenidos correctamente.
-        /// -------------------------------------------------------------------
-        data: (reservations) {
-          /// ---------------------------------------------------------------
-          /// Estado vacío.
-          /// ---------------------------------------------------------------
-          if (reservations.isEmpty) {
+        data: (items) {
+          if (items.isEmpty) {
             return const _ReservationsEmptyState();
           }
 
-          /// ---------------------------------------------------------------
-          /// Lista de reservaciones.
-          /// ---------------------------------------------------------------
+          final now = DateTime.now();
+          final upcoming = items
+              .where((item) => _isUpcoming(item.reservation, item.schedule, now))
+              .toList()
+            ..sort(_compareUpcoming);
+
+          final history = items
+              .where((item) => !_isUpcoming(item.reservation, item.schedule, now))
+              .toList()
+            ..sort(_compareHistory);
+
           return RefreshIndicator(
             onRefresh: () async {
-              /// Actualiza la información de reservaciones.
-              ref.invalidate(
-                clientReservationsProvider,
-              );
-
-              /// Espera a que termine la nueva consulta.
+              ref.invalidate(clientReservationsWithSchedulesProvider);
               await ref.read(
-                clientReservationsProvider.future,
+                clientReservationsWithSchedulesProvider.future,
               );
             },
-            child: ListView.separated(
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
-              itemCount: reservations.length,
-              separatorBuilder: (
-                  context,
-                  index,
-                  ) {
-                return const SizedBox(
-                  height: 12,
-                );
-              },
-              itemBuilder: (
-                  context,
-                  index,
-                  ) {
-                final reservation = reservations[index];
-
-                return _ReservationCard(
-                  reservationId: reservation.reservationId,
-                  coachId: reservation.coachId,
-                  scheduleId: reservation.scheduleId,
-                  status: reservation.status,
-                  amount: reservation.amount,
-                  createdAt: reservation.createdAt,
-                );
-              },
+              children: [
+                if (upcoming.isNotEmpty) ...[
+                  const _SectionTitle(title: 'Próximas sesiones'),
+                  const SizedBox(height: 12),
+                  ...upcoming.map(
+                        (item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _ReservationCard(
+                        reservation: item.reservation,
+                        schedule: item.schedule,
+                      ),
+                    ),
+                  ),
+                ],
+                if (history.isNotEmpty) ...[
+                  if (upcoming.isNotEmpty) const SizedBox(height: 12),
+                  const _SectionTitle(title: 'Historial'),
+                  const SizedBox(height: 12),
+                  ...history.map(
+                        (item) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _ReservationCard(
+                        reservation: item.reservation,
+                        schedule: item.schedule,
+                        history: true,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
           );
         },
       ),
     );
   }
+
+  /// -------------------------------------------------------------------------
+  /// Determina si la reservación pertenece a próximas sesiones.
+  ///
+  /// Las reservaciones completadas o canceladas siempre pertenecen al
+  /// historial, aunque la fecha del horario todavía no haya transcurrido.
+  /// -------------------------------------------------------------------------
+  bool _isUpcoming(
+      Reservation reservation,
+      CoachSchedule schedule,
+      DateTime now,
+      ) {
+    if (reservation.status == 'completed' ||
+        reservation.status == 'cancelled') {
+      return false;
+    }
+
+    return _scheduleDateTime(schedule).isAfter(now);
+  }
+
+  int _compareUpcoming(
+      ({Reservation reservation, CoachSchedule schedule}) first,
+      ({Reservation reservation, CoachSchedule schedule}) second,
+      ) {
+    return _scheduleDateTime(first.schedule).compareTo(
+      _scheduleDateTime(second.schedule),
+    );
+  }
+
+  int _compareHistory(
+      ({Reservation reservation, CoachSchedule schedule}) first,
+      ({Reservation reservation, CoachSchedule schedule}) second,
+      ) {
+    return _scheduleDateTime(second.schedule).compareTo(
+      _scheduleDateTime(first.schedule),
+    );
+  }
+
+  DateTime _scheduleDateTime(CoachSchedule schedule) {
+    final parts = schedule.startTime.split(':');
+    final hour = parts.isNotEmpty ? int.tryParse(parts[0]) ?? 0 : 0;
+    final minute = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
+
+    return DateTime(
+      schedule.date.year,
+      schedule.date.month,
+      schedule.date.day,
+      hour,
+      minute,
+    );
+  }
 }
 
 /// ---------------------------------------------------------------------------
-/// Tarjeta de una reservación.
-///
-/// Esta primera integración muestra únicamente información que ya pertenece
-/// a la entidad Reservation.
-///
-/// No se consulta Firebase adicionalmente para obtener información del Coach
-/// o del horario.
+/// Título de sección.
+/// ---------------------------------------------------------------------------
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: Theme.of(context).textTheme.titleLarge,
+    );
+  }
+}
+
+/// ---------------------------------------------------------------------------
+/// Tarjeta de reservación.
 /// ---------------------------------------------------------------------------
 class _ReservationCard extends StatelessWidget {
   const _ReservationCard({
-    required this.reservationId,
-    required this.coachId,
-    required this.scheduleId,
-    required this.status,
-    required this.amount,
-    required this.createdAt,
+    required this.reservation,
+    required this.schedule,
+    this.history = false,
   });
 
-  final String reservationId;
-  final String coachId;
-  final String scheduleId;
-  final String status;
-  final double amount;
-  final DateTime createdAt;
+  final Reservation reservation;
+  final CoachSchedule schedule;
+  final bool history;
 
   @override
   Widget build(BuildContext context) {
@@ -181,89 +216,40 @@ class _ReservationCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// ---------------------------------------------------------------
-            /// Encabezado.
-            /// ---------------------------------------------------------------
             Row(
               children: [
-                const Icon(
-                  Icons.event_available,
+                Icon(
+                  history ? Icons.history : Icons.event_available,
                 ),
-                const SizedBox(
-                  width: 12,
-                ),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'Reservación',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium,
+                    _formatDate(schedule.date),
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
-                _ReservationStatusChip(
-                  status: status,
-                ),
+                _ReservationStatusChip(status: reservation.status),
               ],
             ),
-
-            const SizedBox(
-              height: 16,
-            ),
-
-            /// ---------------------------------------------------------------
-            /// Identificador de reservación.
-            /// ---------------------------------------------------------------
-            _ReservationInfoRow(
-              label: 'Reservación',
-              value: reservationId,
-            ),
-
-            const SizedBox(
-              height: 8,
-            ),
-
-            /// ---------------------------------------------------------------
-            /// Coach.
-            /// ---------------------------------------------------------------
-            _ReservationInfoRow(
-              label: 'Coach',
-              value: coachId,
-            ),
-
-            const SizedBox(
-              height: 8,
-            ),
-
-            /// ---------------------------------------------------------------
-            /// Horario.
-            /// ---------------------------------------------------------------
+            const SizedBox(height: 12),
             _ReservationInfoRow(
               label: 'Horario',
-              value: scheduleId,
+              value: '${schedule.startTime} - ${schedule.endTime}',
             ),
-
-            const SizedBox(
-              height: 8,
+            const SizedBox(height: 8),
+            _ReservationInfoRow(
+              label: 'Coach',
+              value: reservation.coachId,
             ),
-
-            /// ---------------------------------------------------------------
-            /// Monto.
-            /// ---------------------------------------------------------------
+            const SizedBox(height: 8),
+            _ReservationInfoRow(
+              label: 'Reservación',
+              value: reservation.reservationId,
+            ),
+            const SizedBox(height: 8),
             _ReservationInfoRow(
               label: 'Monto',
-              value: '\$${amount.toStringAsFixed(2)}',
-            ),
-
-            const SizedBox(
-              height: 8,
-            ),
-
-            /// ---------------------------------------------------------------
-            /// Fecha de creación.
-            /// ---------------------------------------------------------------
-            _ReservationInfoRow(
-              label: 'Creada',
-              value: _formatDate(createdAt),
+              value: '\$${reservation.amount.toStringAsFixed(2)}',
             ),
           ],
         ),
@@ -271,37 +257,13 @@ class _ReservationCard extends StatelessWidget {
     );
   }
 
-  /// Formato visual de la fecha de creación.
-  String _formatDate(
-      DateTime date,
-      ) {
-    final day = date.day.toString().padLeft(
-      2,
-      '0',
-    );
-
-    final month = date.month.toString().padLeft(
-      2,
-      '0',
-    );
-
-    final hour = date.hour.toString().padLeft(
-      2,
-      '0',
-    );
-
-    final minute = date.minute.toString().padLeft(
-      2,
-      '0',
-    );
-
-    return '$day/$month/${date.year} $hour:$minute';
+  String _formatDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    return '$day/$month/${date.year}';
   }
 }
 
-/// ---------------------------------------------------------------------------
-/// Fila de información de una reservación.
-/// ---------------------------------------------------------------------------
 class _ReservationInfoRow extends StatelessWidget {
   const _ReservationInfoRow({
     required this.label,
@@ -320,69 +282,41 @@ class _ReservationInfoRow extends StatelessWidget {
           width: 90,
           child: Text(
             label,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
-        Expanded(
-          child: Text(
-            value,
-          ),
-        ),
+        Expanded(child: Text(value)),
       ],
     );
   }
 }
 
-/// ---------------------------------------------------------------------------
-/// Estado del status de la reservación.
-/// ---------------------------------------------------------------------------
 class _ReservationStatusChip extends StatelessWidget {
-  const _ReservationStatusChip({
-    required this.status,
-  });
+  const _ReservationStatusChip({required this.status});
 
   final String status;
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
-      label: Text(
-        _statusLabel(status),
-      ),
-    );
+    return Chip(label: Text(_statusLabel(status)));
   }
 
-  /// Traduce únicamente los estados oficiales de Reservation.
-  String _statusLabel(
-      String value,
-      ) {
+  String _statusLabel(String value) {
     switch (value) {
       case 'pending':
         return 'Pendiente';
-
       case 'confirmed':
         return 'Confirmada';
-
       case 'completed':
         return 'Completada';
-
       case 'cancelled':
         return 'Cancelada';
-
       default:
         return value;
     }
   }
 }
 
-/// ---------------------------------------------------------------------------
-/// Estado vacío.
-/// ---------------------------------------------------------------------------
 class _ReservationsEmptyState extends StatelessWidget {
   const _ReservationsEmptyState();
 
@@ -394,20 +328,13 @@ class _ReservationsEmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.event_busy_outlined,
-              size: 64,
-            ),
-            SizedBox(
-              height: 16,
-            ),
+            Icon(Icons.event_busy_outlined, size: 64),
+            SizedBox(height: 16),
             Text(
               'No tienes reservaciones.',
               textAlign: TextAlign.center,
             ),
-            SizedBox(
-              height: 8,
-            ),
+            SizedBox(height: 8),
             Text(
               'Cuando reserves una sesión aparecerá aquí.',
               textAlign: TextAlign.center,
@@ -419,13 +346,8 @@ class _ReservationsEmptyState extends StatelessWidget {
   }
 }
 
-/// ---------------------------------------------------------------------------
-/// Estado de error.
-/// ---------------------------------------------------------------------------
 class _ReservationsErrorState extends StatelessWidget {
-  const _ReservationsErrorState({
-    required this.onRetry,
-  });
+  const _ReservationsErrorState({required this.onRetry});
 
   final VoidCallback onRetry;
 
@@ -437,25 +359,16 @@ class _ReservationsErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 56,
-            ),
-            const SizedBox(
-              height: 16,
-            ),
+            const Icon(Icons.error_outline, size: 56),
+            const SizedBox(height: 16),
             const Text(
               'No fue posible cargar tus reservaciones.',
               textAlign: TextAlign.center,
             ),
-            const SizedBox(
-              height: 16,
-            ),
+            const SizedBox(height: 16),
             FilledButton(
               onPressed: onRetry,
-              child: const Text(
-                'Reintentar',
-              ),
+              child: const Text('Reintentar'),
             ),
           ],
         ),

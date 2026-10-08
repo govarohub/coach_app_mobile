@@ -8,9 +8,11 @@ import '../../../authentication/presentation/providers/auth_state_provider.dart'
 /// ---------------------------------------------------------------------------
 /// Coach App Mobile
 ///
-/// HomePage
+/// Archivo:
+/// lib/features/home/presentation/pages/home_page.dart
 ///
 /// CK-008.4
+/// CK-017.9
 ///
 /// Dashboard principal.
 ///
@@ -20,8 +22,11 @@ import '../../../authentication/presentation/providers/auth_state_provider.dart'
 /// - Mantener la navegación mediante AppRoutes.
 /// - No ejecutar lógica de negocio directamente.
 ///
-/// Las funcionalidades de cada módulo se implementarán en sus respectivos
-/// CK. En esta etapa las acciones solamente preparan el acceso desde Home.
+/// CK-017.9:
+/// - Integrar "Mis reservaciones" para el cliente.
+/// - Integrar "Mi agenda" para el Coach.
+/// - Conservar el Dashboard en la pila de navegación mediante push().
+/// - Entregar el UID del Coach mediante extra a la ruta de agenda.
 /// ---------------------------------------------------------------------------
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -84,6 +89,12 @@ class HomePage extends ConsumerWidget {
           }
 
           return _AuthenticatedHomeContent(
+            // -----------------------------------------------------------------
+            // CK-017.9:
+            // Se conserva el UID del usuario autenticado para que, cuando
+            // corresponda al rol Coach, pueda utilizarse como coachId.
+            // -----------------------------------------------------------------
+            userId: user.id,
             displayName: user.displayName,
             firstName: user.firstName,
             email: user.email,
@@ -102,11 +113,18 @@ class HomePage extends ConsumerWidget {
 /// ---------------------------------------------------------------------------
 class _AuthenticatedHomeContent extends StatelessWidget {
   const _AuthenticatedHomeContent({
+    required this.userId,
     required this.displayName,
     required this.firstName,
     required this.email,
     required this.role,
   });
+
+  /// UID del usuario autenticado.
+  ///
+  /// CK-017.9:
+  /// Se utiliza como coachId cuando el usuario tiene rol Coach.
+  final String userId;
 
   final String? displayName;
   final String? firstName;
@@ -155,10 +173,17 @@ class _AuthenticatedHomeContent extends StatelessWidget {
           //   - Mis favoritos
           //
           // Coach:
+          //   - Mi agenda
           //   - Mi perfil profesional
           // ---------------------------------------------------------------
           if (role == 'coach')
-            const _CoachHomeActions()
+            _CoachHomeActions(
+              // -------------------------------------------------------------
+              // CK-017.9:
+              // El UID del usuario autenticado es el identificador del Coach.
+              // -------------------------------------------------------------
+              coachId: userId,
+            )
           else
             const _HomeActions(),
 
@@ -228,10 +253,12 @@ class _HomeActions extends StatelessWidget {
         _HomeActionCard(
           icon: Icons.search,
           title: 'Buscar un coach',
-          description: 'Encuentra un coach de acuerdo con tus necesidades.',
+          description:
+          'Encuentra un coach de acuerdo con tus necesidades.',
           onPressed: () {
             // CK-012.11:
-            // Abre la búsqueda como navegación hacia adelante mediante GoRouter.
+            // Abre la búsqueda como navegación hacia adelante mediante
+            // GoRouter.
             //
             // Se utiliza push para conservar el Dashboard en la pila de
             // navegación y permitir regresar posteriormente al Inicio.
@@ -247,7 +274,13 @@ class _HomeActions extends StatelessWidget {
           description:
           'Consulta y administra tus próximas sesiones.',
           onPressed: () {
-            // El calendario e historial serán implementados en CK-017.
+            // -----------------------------------------------------------------
+            // CK-017.9:
+            // La pantalla de reservaciones se abre hacia adelante.
+            //
+            // Se utiliza push() para conservar Inicio en la pila y permitir
+            // regresar posteriormente mediante pop().
+            // -----------------------------------------------------------------
             context.push(AppRoutes.reservations);
           },
         ),
@@ -257,7 +290,8 @@ class _HomeActions extends StatelessWidget {
         _HomeActionCard(
           icon: Icons.favorite_border,
           title: 'Mis favoritos',
-          description: 'Accede rápidamente a tus coaches favoritos.',
+          description:
+          'Accede rápidamente a tus coaches favoritos.',
           onPressed: () {
             context.push(AppRoutes.favorites);
           },
@@ -268,17 +302,47 @@ class _HomeActions extends StatelessWidget {
 }
 
 /// ---------------------------------------------------------------------------
-/// Acciones principales del Dashboard del coach.
+/// Acciones principales del Dashboard del Coach.
 ///
-/// Actualmente el acceso principal del coach es su perfil profesional.
+/// CK-017.9:
+/// - Mi agenda
+/// - Mi perfil profesional
 /// ---------------------------------------------------------------------------
 class _CoachHomeActions extends StatelessWidget {
-  const _CoachHomeActions();
+  const _CoachHomeActions({
+    required this.coachId,
+  });
+
+  /// UID del Coach autenticado.
+  final String coachId;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
+        _HomeActionCard(
+          icon: Icons.event_note_outlined,
+          title: 'Mi agenda',
+          description:
+          'Consulta tus próximas sesiones y el historial.',
+          onPressed: () {
+            // -----------------------------------------------------------------
+            // CK-017.9:
+            // La agenda se abre mediante push para conservar Inicio
+            // en la pila de navegación y permitir regresar posteriormente.
+            //
+            // El coachId se entrega mediante extra porque la ruta necesita
+            // identificar la agenda del Coach autenticado.
+            // -----------------------------------------------------------------
+            context.push(
+              AppRoutes.coachAgenda,
+              extra: coachId,
+            );
+          },
+        ),
+
+        const SizedBox(height: 12),
+
         _HomeActionCard(
           icon: Icons.badge_outlined,
           title: 'Mi perfil profesional',

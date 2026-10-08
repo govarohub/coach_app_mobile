@@ -1,70 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-// ---------------------------------------------------------------------------
-// Authentication
-// ---------------------------------------------------------------------------
 
+// Authentication
 import '../../features/authentication/presentation/pages/forgot_password_page.dart';
 import '../../features/authentication/presentation/pages/login_page.dart';
 import '../../features/authentication/presentation/pages/profile_setup_page.dart';
 import '../../features/authentication/presentation/pages/register_page.dart';
 import '../../features/authentication/presentation/pages/verify_email_page.dart';
 
-// ---------------------------------------------------------------------------
-// Home
-// ---------------------------------------------------------------------------
 
+// Home
 import '../../features/home/presentation/pages/home_page.dart';
 
-// ---------------------------------------------------------------------------
-// Onboarding / Splash
-// ---------------------------------------------------------------------------
 
+// Onboarding / Splash
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
 
-// ---------------------------------------------------------------------------
-// Profile
-// ---------------------------------------------------------------------------
 
+// Profile
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
 
-// ---------------------------------------------------------------------------
-// Coach
-// ---------------------------------------------------------------------------
 
+// Coach
 import '../../features/coach/presentation/pages/coach_profile_page.dart';
 import '../../features/coach/presentation/pages/edit_coach_profile_page.dart';
 import '../../features/coach/presentation/pages/coach_search_page.dart';
 import '../../features/coach/presentation/pages/coach_public_profile_page.dart';
 
-// ---------------------------------------------------------------------------
-// Favorites
-// ---------------------------------------------------------------------------
 
+// Favorites
 import '../../features/favorites/presentation/pages/favorites_page.dart';
 
-// ---------------------------------------------------------------------------
 // Router
-// ---------------------------------------------------------------------------
-
 import 'app_routes.dart';
 import 'route_names.dart';
 
 /// Pantalla de disponibilidad del Coach.
 import '../../features/coach/presentation/pages/coach_schedule_page.dart';
 
-// ---------------------------------------------------------------------------
 // Reservation
-// ---------------------------------------------------------------------------
-
 import '../../features/reservation/presentation/pages/reservation_page.dart';
 
-// CK-016.11
 // Pantalla "Mis reservaciones".
 import '../../features/reservation/presentation/pages/reservations_page.dart';
+
+import '../../features/coach/presentation/pages/coach_agenda_page.dart';
 
 abstract final class AppRouter {
   AppRouter._();
@@ -244,7 +227,6 @@ abstract final class AppRouter {
               ),
             );
           }
-
           // coachId proviene de los parámetros de navegación,
           // por lo que esta instancia no puede ser const.
           return CoachPublicProfilePage(
@@ -321,7 +303,21 @@ abstract final class AppRouter {
           return const ReservationsPage();
         },
       ),
+      // -------------------------------------------------------------------------
+      // Ruta "Mi agenda" del Coach.
+      // El coachId se recibe mediante `extra`.
+      // -------------------------------------------------------------------------
+      GoRoute(
+        path: AppRoutes.coachAgenda,
+        name: RouteNames.coachAgenda,
+        builder: (context, state) {
+          final coachId = state.extra as String;
 
+          return CoachAgendaPage(
+            coachId: coachId,
+          );
+        },
+      ),
 
     ],
 

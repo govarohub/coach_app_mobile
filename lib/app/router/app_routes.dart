@@ -87,4 +87,6 @@ abstract final class AppRoutes {
 
 
   static const String coachSchedule = '/coach/schedule';
+
+  static const String coachAgenda = '/coach/agenda';
 }
