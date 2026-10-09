@@ -28,6 +28,7 @@ class CoachProfilePage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: const BackButton(),
         title: const Text('Perfil profesional'),
       ),
       body: authState.when(

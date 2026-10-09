@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/app_routes.dart';
+import '../../../authentication/presentation/controllers/auth_controller.dart';
 import '../../../authentication/presentation/providers/auth_state_provider.dart';
 
 /// ---------------------------------------------------------------------------
@@ -48,13 +49,54 @@ class HomePage extends ConsumerWidget {
                 return const SizedBox.shrink();
               }
 
-              return IconButton(
-                tooltip: 'Mi perfil',
+              return PopupMenuButton<String>(
+                tooltip: 'Menú de cuenta',
                 icon: const Icon(Icons.person_outline),
-                onPressed: () {
-                  // El perfil se mantiene como acceso general de cuenta.
-                  context.go(AppRoutes.profile);
+                onSelected: (value) async {
+                  if (value == 'profile') {
+                    context.go(AppRoutes.profile);
+                    return;
+                  }
+
+                  if (value == 'logout') {
+                    try {
+                      await ref.read(authControllerProvider.notifier).signOut();
+                      if (context.mounted) {
+                        context.go(AppRoutes.login);
+                      }
+                    } catch (_) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('No fue posible cerrar sesión.'),
+                          ),
+                        );
+                      }
+                    }
+                  }
                 },
+                itemBuilder: (context) => [
+                  const PopupMenuItem<String>(
+                    value: 'profile',
+                    child: Row(
+                      children: [
+                        Icon(Icons.person_outline),
+                        SizedBox(width: 8),
+                        Text('Mi perfil'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'logout',
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout),
+                        SizedBox(width: 8),
+                        Text('Salir'),
+                      ],
+                    ),
+                  ),
+                ],
               );
             },
           ),
@@ -349,8 +391,9 @@ class _CoachHomeActions extends StatelessWidget {
           description:
           'Consulta y administra tu información como coach.',
           onPressed: () {
-            // El perfil profesional corresponde al CK-010.
-            context.go(AppRoutes.coachProfile);
+            // El perfil profesional se abre como una pantalla secundaria para
+            // conservar el Inicio en la pila y permitir regresar con Back.
+            context.push(AppRoutes.coachProfile);
           },
         ),
       ],
