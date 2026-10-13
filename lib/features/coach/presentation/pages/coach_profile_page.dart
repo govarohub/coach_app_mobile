@@ -6,7 +6,6 @@ import '../../../authentication/presentation/providers/auth_state_provider.dart'
 import '../../../profile/presentation/pages/profile_provider.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../../app/router/route_names.dart';
-import '../../domain/entities/coach_profile.dart';
 import 'coach_profile_provider.dart';
 
 /// ---------------------------------------------------------------------------
@@ -161,9 +160,9 @@ class CoachProfilePage extends ConsumerWidget {
                     const SizedBox(height: 16),
 
                     _InformationCard(
-                      title: 'Ubicación profesional',
+                      title: 'Ubicación del coach',
                       child: _LocationView(
-                        location: coach.location,
+                        address: coach.address,
                       ),
                     ),
 
@@ -377,16 +376,17 @@ class _InformationRow extends StatelessWidget {
 
 class _LocationView extends StatelessWidget {
   const _LocationView({
-    required this.location,
+    required this.address,
   });
 
-  final CoachLocation? location;
+  final String? address;
 
   @override
   Widget build(BuildContext context) {
-    if (location == null) {
+    final normalizedAddress = address?.trim();
+    if (normalizedAddress == null || normalizedAddress.isEmpty) {
       return const Text(
-        'Sin ubicación profesional registrada.',
+        'Sin dirección registrada.',
       );
     }
 
@@ -394,11 +394,12 @@ class _LocationView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Latitud: ${location!.latitude.toStringAsFixed(6)}',
+          'Dirección: $normalizedAddress',
         ),
         const SizedBox(height: 4),
         Text(
-          'Longitud: ${location!.longitude.toStringAsFixed(6)}',
+          'Geocodificación © OpenStreetMap contributors',
+          style: Theme.of(context).textTheme.bodySmall,
         ),
       ],
     );

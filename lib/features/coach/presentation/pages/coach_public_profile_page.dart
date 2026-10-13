@@ -528,13 +528,12 @@ class _CoachPublicProfilePageState
                 // Ubicación profesional.
                 // ----------------------------------------------------------------
 
-                if (coach.location != null)
+                if (coach.address?.trim().isNotEmpty == true)
                   _PublicProfileInfoCard(
                     icon: Icons.location_on_outlined,
-                    title: 'Ubicación profesional',
-                    value:
-                    '${coach.location!.latitude.toStringAsFixed(4)}, '
-                        '${coach.location!.longitude.toStringAsFixed(4)}',
+                    title: 'Ubicación del coach',
+                    value: 'Dirección: ${coach.address!.trim()}\n'
+                        'Geocodificación © OpenStreetMap contributors',
                   ),
 
                 // ----------------------------------------------------------------

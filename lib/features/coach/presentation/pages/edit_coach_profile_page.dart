@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http/http.dart' as http;
 import 'package:go_router/go_router.dart';
 
 import '../../../authentication/presentation/providers/auth_state_provider.dart';
@@ -7,6 +10,7 @@ import '../../domain/entities/coach_profile.dart';
 import '../../domain/entities/coach_specialty.dart';
 import '../../domain/entities/coach_specialty_catalog.dart';
 import 'coach_profile_provider.dart';
+import 'coach_search_provider.dart' show getCurrentUserPosition;
 
 /// Página de edición del perfil profesional.
 class EditCoachProfilePage extends ConsumerStatefulWidget {
@@ -32,6 +36,9 @@ class _EditCoachProfilePageState
   /// Controlador de biografía.
   late final TextEditingController _bioController;
 
+  /// Controlador de dirección.
+  late final TextEditingController _addressController;
+
   /// Controlador de latitud.
   late final TextEditingController _latitudeController;
 
@@ -53,6 +60,9 @@ class _EditCoachProfilePageState
   /// que la operación continúa en proceso.
   bool _saving = false;
 
+  /// Indica si se está obteniendo la ubicación actual.
+  bool _loadingLocation = false;
+
   @override
   void initState() {
     super.initState();
@@ -60,6 +70,7 @@ class _EditCoachProfilePageState
     _experienceController = TextEditingController();
     _hourlyRateController = TextEditingController();
     _bioController = TextEditingController();
+    _addressController = TextEditingController();
     _latitudeController = TextEditingController();
     _longitudeController = TextEditingController();
 
@@ -72,6 +83,7 @@ class _EditCoachProfilePageState
     _experienceController.dispose();
     _hourlyRateController.dispose();
     _bioController.dispose();
+    _addressController.dispose();
     _latitudeController.dispose();
     _longitudeController.dispose();
 
@@ -92,6 +104,10 @@ class _EditCoachProfilePageState
       _bioController.text = profile.bio ?? '';
     }
 
+    if (_addressController.text.isEmpty) {
+      _addressController.text = profile.address ?? '';
+    }
+
     if (_latitudeController.text.isEmpty && profile.location != null) {
       _latitudeController.text = profile.location!.latitude.toString();
     }
@@ -109,6 +125,118 @@ class _EditCoachProfilePageState
       _selectedSpecialties.addAll(profile.specialties);
       _initialized = true;
     }
+  }
+
+  /// Actualiza las coordenadas internas usando la ubicación del dispositivo.
+  Future<void> _updateLocation() async {
+    setState(() {
+      _loadingLocation = true;
+    });
+
+    try {
+      final position = await getCurrentUserPosition();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _latitudeController.text = position.latitude.toString();
+        _longitudeController.text = position.longitude.toString();
+      });
+
+      try {
+        final address = await _lookupAddress(
+          latitude: position.latitude,
+          longitude: position.longitude,
+        );
+
+        if (!mounted) {
+          return;
+        }
+
+        if (address != null) {
+          setState(() {
+            _addressController.text = address;
+          });
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              address == null
+                  ? 'Coordenadas actualizadas. No se encontró una dirección; '
+                      'puedes capturarla manualmente.'
+                  : 'Dirección actualizada. Guarda los cambios para aplicarla.',
+            ),
+          ),
+        );
+      } catch (_) {
+        if (!mounted) {
+          return;
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Coordenadas actualizadas, pero no se pudo consultar la '
+              'dirección. Captúrala manualmente.',
+            ),
+          ),
+        );
+      }
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      final message = error.toString().replaceFirst('Bad state: ', '');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _loadingLocation = false;
+        });
+      }
+    }
+  }
+
+  Future<String?> _lookupAddress({
+    required double latitude,
+    required double longitude,
+  }) async {
+    final uri = Uri.https(
+      'nominatim.openstreetmap.org',
+      '/reverse',
+      {
+        'format': 'jsonv2',
+        'lat': latitude.toString(),
+        'lon': longitude.toString(),
+        'zoom': '18',
+        'addressdetails': '1',
+        'accept-language': 'es',
+      },
+    );
+
+    final response = await http
+        .get(uri, headers: const {'Accept': 'application/json'})
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200) {
+      throw const FormatException('No se pudo consultar la dirección.');
+    }
+
+    final payload = jsonDecode(response.body);
+    if (payload is! Map<String, dynamic>) {
+      return null;
+    }
+
+    final address = payload['display_name'];
+    return address is String && address.trim().isNotEmpty
+        ? address.trim()
+        : null;
   }
 
   /// Abre el selector de especialidades.
@@ -327,6 +455,9 @@ class _EditCoachProfilePageState
         bio: _bioController.text.trim().isEmpty
             ? null
             : _bioController.text.trim(),
+        address: _addressController.text.trim().isEmpty
+          ? null
+          : _addressController.text.trim(),
         location: location,
         available: true,
       );
@@ -552,27 +683,39 @@ class _EditCoachProfilePageState
                 /// Ubicación
                 /// -------------------------------------------------------------
                 TextFormField(
-                  controller: _latitudeController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                    signed: true,
-                  ),
+                  controller: _addressController,
+                  textCapitalization: TextCapitalization.words,
                   decoration: const InputDecoration(
-                    labelText: 'Latitud',
+                    labelText: 'Dirección',
+                    hintText: 'Dirección registrada del coach',
                   ),
                 ),
 
                 const SizedBox(height: 16),
 
-                TextFormField(
-                  controller: _longitudeController,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
-                    signed: true,
+                OutlinedButton.icon(
+                  onPressed: _saving || _loadingLocation
+                      ? null
+                      : _updateLocation,
+                  icon: _loadingLocation
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.my_location),
+                  label: Text(
+                    _loadingLocation
+                        ? 'Actualizando ubicación...'
+                        : 'Actualizar ubicación',
                   ),
-                  decoration: const InputDecoration(
-                    labelText: 'Longitud',
-                  ),
+                ),
+
+                const SizedBox(height: 4),
+
+                Text(
+                  'Geocodificación © OpenStreetMap contributors',
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
 
                 const SizedBox(height: 24),

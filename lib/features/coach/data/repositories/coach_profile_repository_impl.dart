@@ -123,6 +123,7 @@ class CoachProfileRepositoryImpl implements CoachProfileRepository {
     required int experienceYears,
     required double hourlyRate,
     required String? bio,
+    required String? address,
     required CoachLocation? location,
     required bool available,
   }) async {
@@ -165,6 +166,7 @@ class CoachProfileRepositoryImpl implements CoachProfileRepository {
       bio: normalizedBio?.isEmpty == true
           ? null
           : normalizedBio,
+        address: address?.trim().isEmpty == true ? null : address?.trim(),
       latitude: location?.latitude,
       longitude: location?.longitude,
       available: available,

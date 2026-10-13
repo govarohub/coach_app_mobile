@@ -74,6 +74,7 @@ class CoachProfileController extends AsyncNotifier<void> {
     required int experienceYears,
     required double hourlyRate,
     required String? bio,
+    required String? address,
     required CoachLocation? location,
     required bool available,
   }) async {
@@ -88,6 +89,7 @@ class CoachProfileController extends AsyncNotifier<void> {
         experienceYears: experienceYears,
         hourlyRate: hourlyRate,
         bio: bio,
+        address: address,
         location: location,
         available: available,
       );

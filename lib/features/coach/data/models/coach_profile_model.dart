@@ -12,6 +12,7 @@ class CoachProfileModel extends CoachProfile {
     required super.rating,
     required super.verified,
     super.bio,
+    super.address,
     super.location,
     required super.available,
   });
@@ -87,6 +88,9 @@ class CoachProfileModel extends CoachProfile {
       // Biografía opcional.
       bio: data['bio'] as String?,
 
+      // Dirección legible opcional.
+      address: data['address'] as String?,
+
       // Ubicación.
       location: location,
 
@@ -106,6 +110,9 @@ class CoachProfileModel extends CoachProfile {
 
       // Biografía profesional.
       'bio': bio,
+
+      // Dirección legible opcional.
+      'address': address,
 
       // Los demás campos forman parte del modelo,
       // pero no son modificados específicamente por CK-010.5.

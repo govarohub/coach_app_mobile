@@ -35,6 +35,7 @@ dependencies:
 
   # Location.
   geolocator: ^14.0.3
+  http: ^1.6.0
 
 dev_dependencies:
   # Flutter testing framework.

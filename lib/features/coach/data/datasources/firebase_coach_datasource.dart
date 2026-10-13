@@ -142,6 +142,7 @@ class FirebaseCoachDataSource {
     required int experienceYears,
     required double hourlyRate,
     required String? bio,
+    required String? address,
     required double? latitude,
     required double? longitude,
     required bool available,
@@ -162,6 +163,7 @@ class FirebaseCoachDataSource {
       'experienceYears': experienceYears,
       'hourlyRate': hourlyRate,
       'bio': bio,
+      'address': address?.trim().isEmpty == true ? null : address?.trim(),
 
       // Ubicación profesional.
       'location': location,

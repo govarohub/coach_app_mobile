@@ -38,6 +38,7 @@ abstract interface class CoachProfileRepository {
     required int experienceYears,
     required double hourlyRate,
     required String? bio,
+    required String? address,
     required CoachLocation? location,
     required bool available,
   });

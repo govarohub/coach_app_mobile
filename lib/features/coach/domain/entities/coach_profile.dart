@@ -10,6 +10,7 @@ class CoachProfile {
     required this.rating,
     required this.verified,
     this.bio,
+    this.address,
     this.location,
     required this.available,
   });
@@ -35,6 +36,9 @@ class CoachProfile {
 
   /// Biografía profesional opcional.
   final String? bio;
+
+  /// Dirección legible registrada por el Coach.
+  final String? address;
 
   /// Ubicación profesional opcional.
   final CoachLocation? location;
