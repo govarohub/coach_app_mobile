@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../reservation/domain/services/reservation_business_rules.dart';
 import '../../domain/entities/coach_schedule.dart';
 import 'coach_schedule_provider.dart';
 
@@ -101,13 +102,24 @@ class CoachSchedulePage extends ConsumerWidget {
         /// ESTADO DE DATOS
         /// -------------------------------------------------------------------
         data: (schedules) {
+          final sortedSchedules = [...schedules]
+            ..sort((a, b) {
+              final dateCompare = a.date.compareTo(b.date);
+              if (dateCompare != 0) {
+                return dateCompare;
+              }
+
+              return _timeToMinutes(a.startTime)
+                  .compareTo(_timeToMinutes(b.startTime));
+            });
+
           /// ---------------------------------------------------------------
           /// CK-015.9
           ///
           /// Cuando la consulta es correcta pero no existen horarios,
           /// se presenta el estado vacío.
           /// ---------------------------------------------------------------
-          if (schedules.isEmpty) {
+          if (sortedSchedules.isEmpty) {
             return const _ScheduleEmptyState();
           }
 
@@ -127,7 +139,7 @@ class CoachSchedulePage extends ConsumerWidget {
               );
             },
             child: _ScheduleList(
-              schedules: schedules,
+              schedules: sortedSchedules,
 
               /// CK-015.7
               onEdit: (schedule) {
@@ -150,6 +162,17 @@ class CoachSchedulePage extends ConsumerWidget {
         },
       ),
     );
+  }
+
+  /// -------------------------------------------------------------------------
+  /// Convierte HH:mm a minutos para ordenar por hora.
+  /// -------------------------------------------------------------------------
+  int _timeToMinutes(String time) {
+    final parts = time.split(':');
+    final hour = parts.isNotEmpty ? int.tryParse(parts.first) ?? 0 : 0;
+    final minute = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
+
+    return hour * 60 + minute;
   }
 
   /// -------------------------------------------------------------------------
@@ -547,13 +570,14 @@ class _ScheduleFormState extends ConsumerState<_ScheduleForm> {
   }
 
   /// -------------------------------------------------------------------------
-  /// Convierte TimeOfDay al formato HH:mm.
+  /// Convierte TimeOfDay al formato 12 horas con AM/PM.
   /// -------------------------------------------------------------------------
   String _formatTime(TimeOfDay time) {
-    final hour = time.hour.toString().padLeft(2, '0');
+    final suffix = time.hour >= 12 ? 'PM' : 'AM';
+    final displayHour = time.hour % 12 == 0 ? 12 : time.hour % 12;
     final minute = time.minute.toString().padLeft(2, '0');
 
-    return '$hour:$minute';
+    return '$displayHour:$minute $suffix';
   }
 
   /// -------------------------------------------------------------------------
@@ -869,7 +893,10 @@ class _ScheduleCard extends StatelessWidget {
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 6),
           child: Text(
-            '${schedule.startTime} - ${schedule.endTime}',
+            ReservationBusinessRules.formatTimeRange(
+              schedule.startTime,
+              schedule.endTime,
+            ),
           ),
         ),
 

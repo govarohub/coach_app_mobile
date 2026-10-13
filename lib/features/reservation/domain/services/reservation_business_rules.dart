@@ -91,6 +91,32 @@ class ReservationBusinessRules {
   }
 
   /// -------------------------------------------------------------------------
+  /// Formatea una hora en formato de 12 horas con AM/PM.
+  /// -------------------------------------------------------------------------
+  static String formatTime(String time) {
+    final normalized = time.trim();
+    final parts = normalized.split(':');
+
+    if (parts.length < 2) {
+      return normalized;
+    }
+
+    final hour = int.tryParse(parts[0]) ?? 0;
+    final minute = int.tryParse(parts[1]) ?? 0;
+    final suffix = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour % 12 == 0 ? 12 : hour % 12;
+
+    return '$displayHour:${minute.toString().padLeft(2, '0')} $suffix';
+  }
+
+  /// -------------------------------------------------------------------------
+  /// Formatea un rango horario con AM/PM.
+  /// -------------------------------------------------------------------------
+  static String formatTimeRange(String startTime, String endTime) {
+    return '${formatTime(startTime)} - ${formatTime(endTime)}';
+  }
+
+  /// -------------------------------------------------------------------------
   /// Valida el importe de la reservación.
   /// -------------------------------------------------------------------------
   static void validateAmount(

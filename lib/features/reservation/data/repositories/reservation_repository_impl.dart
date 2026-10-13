@@ -128,6 +128,21 @@ class ReservationRepositoryImpl implements ReservationRepository {
     );
   }
 
+  @override
+  Future<bool> hasActiveReservationForSchedule(String scheduleId) async {
+    _validateScheduleId(scheduleId);
+
+    final snapshot = await _dataSource.getReservationsByScheduleId(
+      scheduleId: scheduleId,
+    );
+
+    return snapshot.docs.any((document) {
+      final data = document.data();
+      final status = (data['status'] as String? ?? 'pending').trim();
+      return status != 'cancelled';
+    });
+  }
+
   /// -------------------------------------------------------------------------
   /// Crea una reservación.
   ///

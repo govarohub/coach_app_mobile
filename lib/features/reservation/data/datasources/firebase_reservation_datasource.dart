@@ -111,6 +111,20 @@ class FirebaseReservationDataSource {
         .get();
   }
 
+  /// Obtiene las reservaciones asociadas a un horario específico.
+  Future<QuerySnapshot<Map<String, dynamic>>> getReservationsByScheduleId({
+    required String scheduleId,
+  }) {
+    _validateScheduleId(scheduleId);
+
+    return _reservationsCollection
+        .where(
+      'scheduleId',
+      isEqualTo: scheduleId.trim(),
+    )
+        .get();
+  }
+
   /// -------------------------------------------------------------------------
   /// Crea una nueva reservación.
   ///

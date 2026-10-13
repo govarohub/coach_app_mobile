@@ -37,6 +37,9 @@ abstract interface class ReservationRepository {
     required DateTime createdAt,
   });
 
+  /// Verifica si un horario ya tiene una reservación activa.
+  Future<bool> hasActiveReservationForSchedule(String scheduleId);
+
   /// -------------------------------------------------------------------------
   /// CK-016.8
   ///

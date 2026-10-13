@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../reservation/domain/entities/reservation.dart';
+import '../../../reservation/domain/services/reservation_business_rules.dart';
 import '../../../reservation/presentation/pages/reservation_provider.dart';
 import '../../domain/entities/coach_schedule.dart';
 
@@ -78,11 +79,21 @@ class CoachAgendaPage extends ConsumerWidget {
         /// ESTADO DE DATOS
         /// -------------------------------------------------------------------
         data: (items) {
+          final uniqueItems = <({Reservation reservation, CoachSchedule schedule})>[];
+          final seenScheduleIds = <String>{};
+
+          for (final item in items) {
+            final key = item.schedule.scheduleId;
+            if (seenScheduleIds.add(key)) {
+              uniqueItems.add(item);
+            }
+          }
+
           final now = DateTime.now();
 
           /// Próximas sesiones: pendientes o confirmadas cuya fecha/hora
           /// todavía no ha transcurrido.
-          final upcoming = items
+          final upcoming = uniqueItems
               .where(
                 (item) => _isUpcoming(
               item.reservation,
@@ -94,7 +105,7 @@ class CoachAgendaPage extends ConsumerWidget {
             ..sort(_compareUpcoming);
 
           /// Historial: sesiones pasadas o reservaciones completadas/canceladas.
-          final history = items
+          final history = uniqueItems
               .where(
                 (item) => !_isUpcoming(
               item.reservation,
@@ -108,7 +119,7 @@ class CoachAgendaPage extends ConsumerWidget {
           /// ---------------------------------------------------------------
           /// ESTADO VACÍO
           /// ---------------------------------------------------------------
-          if (items.isEmpty) {
+          if (uniqueItems.isEmpty) {
             return _CoachAgendaEmptyState(
               onRefresh: () async {
                 ref.invalidate(
@@ -285,7 +296,10 @@ class _CoachAgendaCard extends StatelessWidget {
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 6),
           child: Text(
-            '${schedule.startTime} - ${schedule.endTime}',
+            ReservationBusinessRules.formatTimeRange(
+              schedule.startTime,
+              schedule.endTime,
+            ),
           ),
         ),
         trailing: _ReservationStatusLabel(
@@ -334,7 +348,10 @@ class _CoachAgendaHistoryCard extends StatelessWidget {
         subtitle: Padding(
           padding: const EdgeInsets.only(top: 6),
           child: Text(
-            '${schedule.startTime} - ${schedule.endTime}',
+            ReservationBusinessRules.formatTimeRange(
+              schedule.startTime,
+              schedule.endTime,
+            ),
           ),
         ),
         trailing: _ReservationStatusLabel(

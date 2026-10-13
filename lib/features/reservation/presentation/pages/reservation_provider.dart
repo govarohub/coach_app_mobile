@@ -6,6 +6,7 @@ import '../../data/datasources/firebase_reservation_datasource.dart';
 import '../../data/repositories/reservation_repository_impl.dart';
 import '../../domain/entities/reservation.dart';
 import '../../domain/repositories/reservation_repository.dart';
+import '../../domain/services/reservation_business_rules.dart';
 
 /// ---------------------------------------------------------------------------
 /// DataSource de Reservaciones.
@@ -251,12 +252,23 @@ class ReservationController extends AsyncNotifier<void> {
         );
       }
 
+      final repository = ref.read(reservationRepositoryProvider);
+      final scheduleRepository = ref.read(coachScheduleRepositoryProvider);
+
+      final schedule = await scheduleRepository.getSchedule(scheduleId);
+      ReservationBusinessRules.validateScheduleCanBeReserved(schedule.status);
+
+      final hasExistingReservation = await repository.hasActiveReservationForSchedule(
+        scheduleId,
+      );
+      ReservationBusinessRules.validateNoDoubleBooking(
+        hasExistingReservation: hasExistingReservation,
+      );
+
       // -----------------------------------------------------------------------
       // 2. Crear la reservación con estado inicial `pending`.
       // -----------------------------------------------------------------------
-      final reservationId = await ref
-          .read(reservationRepositoryProvider)
-          .createPendingReservation(
+      final reservationId = await repository.createPendingReservation(
         clientId: authState.id,
         coachId: coachId,
         scheduleId: scheduleId,
@@ -269,9 +281,7 @@ class ReservationController extends AsyncNotifier<void> {
       // Este cambio pertenece al flujo de reservación y no utiliza la
       // validación de bloqueo/desbloqueo manual de CK-015.11.
       // -----------------------------------------------------------------------
-      await ref
-          .read(coachScheduleRepositoryProvider)
-          .updateScheduleStatus(
+      await scheduleRepository.updateScheduleStatus(
         scheduleId: scheduleId,
         status: 'reserved',
       );
@@ -279,9 +289,21 @@ class ReservationController extends AsyncNotifier<void> {
       // Actualizar estado del Controller.
       state = const AsyncData(null);
 
-      // Actualizar consulta de horarios.
+      // Actualizar consultas relacionadas.
       ref.invalidate(
         coachSchedulesProvider(coachId),
+      );
+      ref.invalidate(
+        coachAvailableSchedulesProvider(coachId),
+      );
+      ref.invalidate(
+        clientReservationsProvider,
+      );
+      ref.invalidate(
+        clientReservationsWithSchedulesProvider,
+      );
+      ref.invalidate(
+        coachReservationsProvider(coachId),
       );
 
       return reservationId;

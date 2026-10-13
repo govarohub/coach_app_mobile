@@ -6,6 +6,7 @@ import '../../../coach/domain/entities/coach_schedule.dart';
 import '../../../coach/presentation/pages/coach_profile_provider.dart';
 import 'reservation_provider.dart';
 import '../../domain/entities/reservation.dart';
+import '../../domain/services/reservation_business_rules.dart';
 
 /// ---------------------------------------------------------------------------
 /// Coach App Mobile
@@ -64,17 +65,27 @@ class ReservationsPage extends ConsumerWidget {
           );
         },
         data: (items) {
-          if (items.isEmpty) {
+          final uniqueItems = <({Reservation reservation, CoachSchedule schedule})>[];
+          final seenScheduleIds = <String>{};
+
+          for (final item in items) {
+            final key = item.schedule.scheduleId;
+            if (seenScheduleIds.add(key)) {
+              uniqueItems.add(item);
+            }
+          }
+
+          if (uniqueItems.isEmpty) {
             return const _ReservationsEmptyState();
           }
 
           final now = DateTime.now();
-          final upcoming = items
+          final upcoming = uniqueItems
               .where((item) => _isUpcoming(item.reservation, item.schedule, now))
               .toList()
             ..sort(_compareUpcoming);
 
-          final history = items
+          final history = uniqueItems
               .where((item) => !_isUpcoming(item.reservation, item.schedule, now))
               .toList()
             ..sort(_compareHistory);
@@ -235,7 +246,12 @@ class _ReservationCard extends StatelessWidget {
             const SizedBox(height: 12),
             _ReservationInfoRow(
               label: 'Horario',
-              value: Text('${schedule.startTime} - ${schedule.endTime}'),
+              value: Text(
+                ReservationBusinessRules.formatTimeRange(
+                  schedule.startTime,
+                  schedule.endTime,
+                ),
+              ),
             ),
             const SizedBox(height: 8),
             _ReservationInfoRow(
