@@ -149,7 +149,6 @@ class HomePage extends ConsumerWidget {
     );
   }
 }
-
 /// ---------------------------------------------------------------------------
 /// Contenido principal del Dashboard.
 /// ---------------------------------------------------------------------------
@@ -229,36 +228,6 @@ class _AuthenticatedHomeContent extends StatelessWidget {
           else
             const _HomeActions(),
 
-          const SizedBox(height: 32),
-
-          Text(
-            'Tu cuenta',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-
-          const SizedBox(height: 16),
-
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _UserInfoRow(
-                    label: 'Nombre',
-                    value: displayName?.trim().isNotEmpty == true
-                        ? displayName!.trim()
-                        : 'No configurado',
-                  ),
-                  const SizedBox(height: 12),
-                  _UserInfoRow(
-                    label: 'Correo',
-                    value: email,
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -545,38 +514,3 @@ class _UserHeader extends StatelessWidget {
   }
 }
 
-/// ---------------------------------------------------------------------------
-/// Fila reutilizable para información de cuenta.
-/// ---------------------------------------------------------------------------
-class _UserInfoRow extends StatelessWidget {
-  const _UserInfoRow({
-    required this.label,
-    required this.value,
-  });
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 90,
-          child: Text(
-            label,
-            style: Theme.of(context).textTheme.labelLarge,
-          ),
-        ),
-
-        Expanded(
-          child: Text(
-            value,
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-        ),
-      ],
-    );
-  }
-}

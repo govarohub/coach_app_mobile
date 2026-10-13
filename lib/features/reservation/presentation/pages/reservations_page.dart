@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../coach/domain/entities/coach_schedule.dart';
+import '../../../coach/presentation/pages/coach_profile_provider.dart';
 import 'reservation_provider.dart';
 import '../../domain/entities/reservation.dart';
 
@@ -234,22 +235,17 @@ class _ReservationCard extends StatelessWidget {
             const SizedBox(height: 12),
             _ReservationInfoRow(
               label: 'Horario',
-              value: '${schedule.startTime} - ${schedule.endTime}',
+              value: Text('${schedule.startTime} - ${schedule.endTime}'),
             ),
             const SizedBox(height: 8),
             _ReservationInfoRow(
               label: 'Coach',
-              value: reservation.coachId,
-            ),
-            const SizedBox(height: 8),
-            _ReservationInfoRow(
-              label: 'Reservación',
-              value: reservation.reservationId,
+              value: _CoachName(coachId: reservation.coachId),
             ),
             const SizedBox(height: 8),
             _ReservationInfoRow(
               label: 'Monto',
-              value: '\$${reservation.amount.toStringAsFixed(2)}',
+              value: Text('\$${reservation.amount.toStringAsFixed(2)}'),
             ),
           ],
         ),
@@ -264,6 +260,23 @@ class _ReservationCard extends StatelessWidget {
   }
 }
 
+class _CoachName extends ConsumerWidget {
+  const _CoachName({required this.coachId});
+
+  final String coachId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final identityAsync = ref.watch(coachPublicIdentityProvider(coachId));
+
+    return identityAsync.when(
+      data: (identity) => Text(identity.name),
+      loading: () => const Text('Cargando...'),
+      error: (_, _) => const Text('No disponible'),
+    );
+  }
+}
+
 class _ReservationInfoRow extends StatelessWidget {
   const _ReservationInfoRow({
     required this.label,
@@ -271,7 +284,7 @@ class _ReservationInfoRow extends StatelessWidget {
   });
 
   final String label;
-  final String value;
+  final Widget value;
 
   @override
   Widget build(BuildContext context) {
@@ -285,7 +298,7 @@ class _ReservationInfoRow extends StatelessWidget {
             style: const TextStyle(fontWeight: FontWeight.w600),
           ),
         ),
-        Expanded(child: Text(value)),
+        Expanded(child: value),
       ],
     );
   }
