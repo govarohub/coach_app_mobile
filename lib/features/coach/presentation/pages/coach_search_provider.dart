@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -139,6 +142,43 @@ Future<Position> getCurrentUserPosition() async {
 
   // Obtenemos la posición actual del usuario.
   return Geolocator.getCurrentPosition();
+}
+
+/// Convierte unas coordenadas en una dirección legible.
+Future<String?> lookupAddressFromCoordinates({
+  required double latitude,
+  required double longitude,
+}) async {
+  final uri = Uri.https(
+    'nominatim.openstreetmap.org',
+    '/reverse',
+    {
+      'format': 'jsonv2',
+      'lat': latitude.toString(),
+      'lon': longitude.toString(),
+      'zoom': '18',
+      'addressdetails': '1',
+      'accept-language': 'es',
+    },
+  );
+
+  final response = await http
+      .get(uri, headers: const {'Accept': 'application/json'})
+      .timeout(const Duration(seconds: 10));
+
+  if (response.statusCode != 200) {
+    throw const FormatException('No se pudo consultar la dirección.');
+  }
+
+  final payload = jsonDecode(response.body);
+  if (payload is! Map<String, dynamic>) {
+    return null;
+  }
+
+  final address = payload['display_name'];
+  return address is String && address.trim().isNotEmpty
+      ? address.trim()
+      : null;
 }
 
 /// Calcula la distancia en kilómetros entre el usuario

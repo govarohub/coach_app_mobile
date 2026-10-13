@@ -1,8 +1,5 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:http/http.dart' as http;
 import 'package:go_router/go_router.dart';
 
 import '../../../authentication/presentation/providers/auth_state_provider.dart';
@@ -10,7 +7,8 @@ import '../../domain/entities/coach_profile.dart';
 import '../../domain/entities/coach_specialty.dart';
 import '../../domain/entities/coach_specialty_catalog.dart';
 import 'coach_profile_provider.dart';
-import 'coach_search_provider.dart' show getCurrentUserPosition;
+import 'coach_search_provider.dart'
+  show getCurrentUserPosition, lookupAddressFromCoordinates;
 
 /// Página de edición del perfil profesional.
 class EditCoachProfilePage extends ConsumerStatefulWidget {
@@ -146,7 +144,7 @@ class _EditCoachProfilePageState
       });
 
       try {
-        final address = await _lookupAddress(
+        final address = await lookupAddressFromCoordinates(
           latitude: position.latitude,
           longitude: position.longitude,
         );
@@ -201,42 +199,6 @@ class _EditCoachProfilePageState
         });
       }
     }
-  }
-
-  Future<String?> _lookupAddress({
-    required double latitude,
-    required double longitude,
-  }) async {
-    final uri = Uri.https(
-      'nominatim.openstreetmap.org',
-      '/reverse',
-      {
-        'format': 'jsonv2',
-        'lat': latitude.toString(),
-        'lon': longitude.toString(),
-        'zoom': '18',
-        'addressdetails': '1',
-        'accept-language': 'es',
-      },
-    );
-
-    final response = await http
-        .get(uri, headers: const {'Accept': 'application/json'})
-        .timeout(const Duration(seconds: 10));
-
-    if (response.statusCode != 200) {
-      throw const FormatException('No se pudo consultar la dirección.');
-    }
-
-    final payload = jsonDecode(response.body);
-    if (payload is! Map<String, dynamic>) {
-      return null;
-    }
-
-    final address = payload['display_name'];
-    return address is String && address.trim().isNotEmpty
-        ? address.trim()
-        : null;
   }
 
   /// Abre el selector de especialidades.

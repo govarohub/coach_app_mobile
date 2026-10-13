@@ -47,6 +47,9 @@ class _CoachSearchPageState extends ConsumerState<CoachSearchPage> {
   /// por distancia.
   Position? _userPosition;
 
+  /// Dirección legible de la ubicación actual.
+  String? _userAddress;
+
   /// Indica si se está obteniendo la ubicación del usuario.
   bool _loadingLocation = false;
 
@@ -78,7 +81,31 @@ class _CoachSearchPageState extends ConsumerState<CoachSearchPage> {
 
       setState(() {
         _userPosition = position;
+        _userAddress = null;
       });
+
+      try {
+        final address = await lookupAddressFromCoordinates(
+          latitude: position.latitude,
+          longitude: position.longitude,
+        );
+
+        if (mounted) {
+          setState(() {
+            _userAddress = address;
+          });
+        }
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Ubicación detectada, pero no se pudo consultar el domicilio.',
+              ),
+            ),
+          );
+        }
+      }
     } catch (error) {
       if (!mounted) {
         return;
@@ -358,6 +385,42 @@ class _CoachSearchPageState extends ConsumerState<CoachSearchPage> {
                         ),
                       ),
                     ),
+
+                    if (_loadingLocation || _userPosition != null) ...[
+                      const SizedBox(height: 8),
+                      if (_loadingLocation && _userAddress == null)
+                        const Text('Obteniendo domicilio...')
+                      else if (_userAddress != null) ...[
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.location_on_outlined),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Domicilio',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleSmall,
+                                  ),
+                                  Text(_userAddress!),
+                                  Text(
+                                    'Geocodificación © OpenStreetMap contributors',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ] else
+                        const Text('No se pudo determinar el domicilio.'),
+                    ],
                   ],
                 ),
               ),
