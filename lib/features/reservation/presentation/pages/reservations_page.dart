@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../coach/domain/entities/coach_schedule.dart';
 import '../../../coach/presentation/pages/coach_profile_provider.dart';
+import '../../../reviews/presentation/pages/client_review_page.dart';
+import '../../../reviews/presentation/review_providers.dart';
 import 'reservation_provider.dart';
 import '../../domain/entities/reservation.dart';
 import '../../domain/services/reservation_business_rules.dart';
@@ -105,7 +107,7 @@ class ReservationsPage extends ConsumerWidget {
                   const _SectionTitle(title: 'Próximas sesiones'),
                   const SizedBox(height: 12),
                   ...upcoming.map(
-                        (item) => Padding(
+                      (item) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _ReservationCard(
                         reservation: item.reservation,
@@ -119,7 +121,7 @@ class ReservationsPage extends ConsumerWidget {
                   const _SectionTitle(title: 'Historial'),
                   const SizedBox(height: 12),
                   ...history.map(
-                        (item) => Padding(
+                      (item) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _ReservationCard(
                         reservation: item.reservation,
@@ -263,6 +265,10 @@ class _ReservationCard extends StatelessWidget {
               label: 'Monto',
               value: Text('\$${reservation.amount.toStringAsFixed(2)}'),
             ),
+            if (reservation.status == 'completed') ...[
+              const SizedBox(height: 16),
+              _ReviewActionButton(reservationId: reservation.reservationId),
+            ],
           ],
         ),
       ),
@@ -273,6 +279,55 @@ class _ReservationCard extends StatelessWidget {
     final day = date.day.toString().padLeft(2, '0');
     final month = date.month.toString().padLeft(2, '0');
     return '$day/$month/${date.year}';
+  }
+}
+
+class _ReviewActionButton extends ConsumerWidget {
+  const _ReviewActionButton({required this.reservationId});
+
+  final String reservationId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final eligibilityAsync = ref.watch(
+      reviewEligibilityProvider(reservationId),
+    );
+
+    return eligibilityAsync.when(
+      loading: () => const Center(
+        child: SizedBox.square(
+          dimension: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      error: (error, stackTrace) => Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: () =>
+              ref.invalidate(reviewEligibilityProvider(reservationId)),
+          icon: const Icon(Icons.refresh),
+          label: const Text('Reintentar calificación'),
+        ),
+      ),
+      data: (eligibility) {
+        final hasReview = eligibility.existingReview != null;
+        return SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () {
+              Navigator.of(context).push<void>(
+                MaterialPageRoute<void>(
+                  builder: (_) =>
+                      ClientReviewPage(reservationId: reservationId),
+                ),
+              );
+            },
+            icon: Icon(hasReview ? Icons.edit_outlined : Icons.star_outline),
+            label: Text(hasReview ? 'Editar reseña' : 'Calificar sesión'),
+          ),
+        );
+      },
+    );
   }
 }
 

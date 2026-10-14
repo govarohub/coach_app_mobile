@@ -7,6 +7,8 @@ import '../../../../app/router/route_names.dart';
 
 import '../../domain/entities/coach_profile.dart';
 import '../../../favorites/presentation/favorites_provider.dart';
+import '../../../reviews/presentation/pages/coach_reviews_section.dart';
+import '../../../reviews/presentation/review_providers.dart';
 
 import 'coach_profile_provider.dart';
 import 'coach_search_provider.dart';
@@ -499,11 +501,7 @@ class _CoachPublicProfilePageState
                 // Calificación.
                 // ----------------------------------------------------------------
 
-                _PublicProfileInfoCard(
-                  icon: Icons.star_outline,
-                  title: 'Calificación',
-                  value: coach.rating.toStringAsFixed(1),
-                ),
+                _CoachReviewSummaryCard(coachId: widget.coachId),
 
                 const SizedBox(height: 12),
 
@@ -571,6 +569,8 @@ class _CoachPublicProfilePageState
                   ),
                 ],
                 const SizedBox(height: 24),
+                CoachReviewsSection(coachId: widget.coachId),
+                const SizedBox(height: 24),
 
                 FilledButton.icon(
                   onPressed: () {
@@ -591,6 +591,44 @@ class _CoachPublicProfilePageState
           );
         },
       ),
+    );
+  }
+}
+
+class _CoachReviewSummaryCard extends ConsumerWidget {
+  const _CoachReviewSummaryCard({required this.coachId});
+
+  final String coachId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final summaryAsync = ref.watch(coachReviewSummaryProvider(coachId));
+
+    return summaryAsync.when(
+      loading: () => const _PublicProfileInfoCard(
+        icon: Icons.star_outline,
+        title: 'Calificación',
+        value: 'Cargando...',
+      ),
+      error: (error, stackTrace) => const _PublicProfileInfoCard(
+        icon: Icons.star_outline,
+        title: 'Calificación',
+        value: 'No disponible',
+      ),
+      data: (summary) {
+        final averageRating = summary.averageRating;
+        final value = averageRating == null
+            ? 'Sin reseñas'
+            : '${averageRating.toStringAsFixed(1)} · '
+                '${summary.reviewCount} '
+                '${summary.reviewCount == 1 ? 'reseña' : 'reseñas'}';
+
+        return _PublicProfileInfoCard(
+          icon: Icons.star_outline,
+          title: 'Calificación',
+          value: value,
+        );
+      },
     );
   }
 }

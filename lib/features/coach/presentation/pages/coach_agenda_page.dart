@@ -17,7 +17,7 @@ import '../../domain/entities/coach_schedule.dart';
 /// Pantalla "Mi agenda" del Coach.
 ///
 /// Responsabilidades:
-/// - Consultar las reservaciones del Coach junto con sus horarios.
+/// - Consultar todos los horarios del Coach y sus reservaciones asociadas.
 /// - Separar próximas sesiones e historial.
 /// - Mostrar fecha, hora y estado de cada sesión.
 /// - Mostrar loading, error y estado vacío.
@@ -43,11 +43,10 @@ class CoachAgendaPage extends ConsumerWidget {
     /// -----------------------------------------------------------------------
     /// CK-017.6 / CK-017.7
     ///
-    /// Reutilizamos el provider existente de reservaciones del Coach y
-    /// asociamos cada reservación con su horario para obtener fecha y hora.
+    /// Incluye horarios disponibles aunque todavía no tengan reservación.
     /// -----------------------------------------------------------------------
     final reservationsAsync = ref.watch(
-      coachReservationsWithSchedulesProvider(coachId),
+      coachAgendaItemsProvider(coachId),
     );
 
     return Scaffold(
@@ -69,7 +68,7 @@ class CoachAgendaPage extends ConsumerWidget {
           return _CoachAgendaErrorState(
             onRetry: () {
               ref.invalidate(
-                coachReservationsWithSchedulesProvider(coachId),
+                coachAgendaItemsProvider(coachId),
               );
             },
           );
@@ -79,7 +78,7 @@ class CoachAgendaPage extends ConsumerWidget {
         /// ESTADO DE DATOS
         /// -------------------------------------------------------------------
         data: (items) {
-          final uniqueItems = <({Reservation reservation, CoachSchedule schedule})>[];
+          final uniqueItems = <({Reservation? reservation, CoachSchedule schedule})>[];
           final seenScheduleIds = <String>{};
 
           for (final item in items) {
@@ -96,7 +95,7 @@ class CoachAgendaPage extends ConsumerWidget {
           final upcoming = uniqueItems
               .where(
                 (item) => _isUpcoming(
-              item.reservation,
+                item.reservation,
               item.schedule,
               now,
             ),
@@ -123,11 +122,11 @@ class CoachAgendaPage extends ConsumerWidget {
             return _CoachAgendaEmptyState(
               onRefresh: () async {
                 ref.invalidate(
-                  coachReservationsWithSchedulesProvider(coachId),
+                  coachAgendaItemsProvider(coachId),
                 );
 
                 await ref.read(
-                  coachReservationsWithSchedulesProvider(coachId).future,
+                  coachAgendaItemsProvider(coachId).future,
                 );
               },
             );
@@ -136,11 +135,11 @@ class CoachAgendaPage extends ConsumerWidget {
           return RefreshIndicator(
             onRefresh: () async {
               ref.invalidate(
-                coachReservationsWithSchedulesProvider(coachId),
+                coachAgendaItemsProvider(coachId),
               );
 
               await ref.read(
-                coachReservationsWithSchedulesProvider(coachId).future,
+                coachAgendaItemsProvider(coachId).future,
               );
             },
             child: ListView(
@@ -191,14 +190,14 @@ class CoachAgendaPage extends ConsumerWidget {
   /// Determina si una reservación pertenece a próximas sesiones.
   /// -------------------------------------------------------------------------
   bool _isUpcoming(
-      Reservation reservation,
+      Reservation? reservation,
       CoachSchedule schedule,
       DateTime now,
       ) {
     /// Una reservación completada o cancelada pertenece al historial,
     /// independientemente de la fecha del horario.
-    if (reservation.status == 'completed' ||
-        reservation.status == 'cancelled') {
+    if (reservation?.status == 'completed' ||
+      reservation?.status == 'cancelled') {
       return false;
     }
 
@@ -209,8 +208,8 @@ class CoachAgendaPage extends ConsumerWidget {
   /// Orden cronológico ascendente para próximas sesiones.
   /// -------------------------------------------------------------------------
   int _compareUpcoming(
-      ({Reservation reservation, CoachSchedule schedule}) first,
-      ({Reservation reservation, CoachSchedule schedule}) second,
+      ({Reservation? reservation, CoachSchedule schedule}) first,
+      ({Reservation? reservation, CoachSchedule schedule}) second,
       ) {
     return _scheduleDateTime(first.schedule).compareTo(
       _scheduleDateTime(second.schedule),
@@ -221,8 +220,8 @@ class CoachAgendaPage extends ConsumerWidget {
   /// Orden cronológico descendente para historial.
   /// -------------------------------------------------------------------------
   int _compareHistory(
-      ({Reservation reservation, CoachSchedule schedule}) first,
-      ({Reservation reservation, CoachSchedule schedule}) second,
+      ({Reservation? reservation, CoachSchedule schedule}) first,
+      ({Reservation? reservation, CoachSchedule schedule}) second,
       ) {
     return _scheduleDateTime(second.schedule).compareTo(
       _scheduleDateTime(first.schedule),
@@ -273,7 +272,7 @@ class _CoachAgendaCard extends StatelessWidget {
     required this.schedule,
   });
 
-  final Reservation reservation;
+  final Reservation? reservation;
   final CoachSchedule schedule;
 
   @override
@@ -303,7 +302,7 @@ class _CoachAgendaCard extends StatelessWidget {
           ),
         ),
         trailing: _ReservationStatusLabel(
-          status: reservation.status,
+          status: reservation?.status ?? schedule.status,
         ),
       ),
     );
@@ -325,7 +324,7 @@ class _CoachAgendaHistoryCard extends StatelessWidget {
     required this.schedule,
   });
 
-  final Reservation reservation;
+  final Reservation? reservation;
   final CoachSchedule schedule;
 
   @override
@@ -355,7 +354,7 @@ class _CoachAgendaHistoryCard extends StatelessWidget {
           ),
         ),
         trailing: _ReservationStatusLabel(
-          status: reservation.status,
+          status: reservation?.status ?? schedule.status,
         ),
       ),
     );
@@ -407,6 +406,12 @@ class _ReservationStatusLabel extends StatelessWidget {
         return Icons.event_available_outlined;
       case 'pending':
         return Icons.pending_outlined;
+      case 'available':
+        return Icons.event_available_outlined;
+      case 'reserved':
+        return Icons.event_busy_outlined;
+      case 'blocked':
+        return Icons.block_outlined;
       default:
         return Icons.help_outline;
     }
@@ -422,6 +427,12 @@ class _ReservationStatusLabel extends StatelessWidget {
         return 'Confirmada';
       case 'pending':
         return 'Pendiente';
+      case 'available':
+        return 'Disponible';
+      case 'reserved':
+        return 'Reservada';
+      case 'blocked':
+        return 'Bloqueada';
       default:
         return value;
     }
@@ -476,7 +487,7 @@ class _CoachAgendaEmptyState extends StatelessWidget {
           ),
           SizedBox(height: 8),
           Text(
-            'Las sesiones reservadas aparecerán aquí.',
+            'Los horarios y las sesiones reservadas aparecerán aquí.',
             textAlign: TextAlign.center,
           ),
         ],

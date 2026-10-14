@@ -209,6 +209,39 @@ CoachSchedule schedule,
   );
 });
 
+/// Obtiene todos los horarios del Coach y asocia la reservación más reciente,
+/// si existe, para mostrar disponibilidad y sesiones reservadas en su agenda.
+final coachAgendaItemsProvider = FutureProvider.family<List<({
+  Reservation? reservation,
+  CoachSchedule schedule,
+})>, String>((ref, coachId) async {
+  final schedules = await ref.watch(
+    coachSchedulesProvider(coachId).future,
+  );
+  final reservations = await ref.watch(
+    coachReservationsProvider(coachId).future,
+  );
+
+  final reservationsByScheduleId = <String, Reservation>{};
+  final newestFirstReservations = [...reservations]
+    ..sort((first, second) => second.createdAt.compareTo(first.createdAt));
+
+  for (final reservation in newestFirstReservations) {
+    reservationsByScheduleId.putIfAbsent(
+      reservation.scheduleId,
+      () => reservation,
+    );
+  }
+
+  return schedules
+      .where((schedule) => schedule.status != 'blocked')
+      .map((schedule) => (
+            reservation: reservationsByScheduleId[schedule.scheduleId],
+            schedule: schedule,
+          ))
+      .toList();
+});
+
 /// ---------------------------------------------------------------------------
 /// Controller de Reservaciones.
 ///
