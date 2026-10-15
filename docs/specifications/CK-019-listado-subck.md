@@ -10,9 +10,9 @@
 | **CK-019.6** | Crear flujo de captura y edición para el cliente | ✅ COMPLETADO |
 | **CK-019.7** | Calcular y mostrar el resumen de calificaciones del coach | ✅ COMPLETADO |
 | **CK-019.8** | Mostrar reseñas en el perfil público del coach | ✅ COMPLETADO |
-| **CK-019.9** | Proteger reseñas con reglas de seguridad de Firestore | ✅ COMPLETADO |
-| **CK-019.10** | Añadir pruebas unitarias, de widgets e integración | ⏳ PENDIENTE |
-| **CK-019.11** | Ejecutar QA y documentar evidencia de cierre | ⏳ PENDIENTE |
+| **CK-019.9** | Proteger reseñas con reglas de seguridad de Firestore | 🟡 EN PROGRESO |
+| **CK-019.10** | Añadir pruebas unitarias, de widgets e integración | ✅ COMPLETADO |
+| **CK-019.11** | Ejecutar QA y documentar evidencia de cierre | 🟡 EN PROGRESO |
 
 ## Documentos
 
@@ -38,6 +38,9 @@
 - Widget tests de reseñas públicas: `test/features/reviews/presentation/coach_reviews_section_test.dart`
 - Reglas de seguridad: `firestore.rules`
 - Especificación de seguridad: [CK-019.9](CK-019.9-seguridad-firestore.md)
+- Estado CK-019.9: reglas compiladas y verificadas en emulador; despliegue remoto e inspección/migración de reseñas antiguas pendientes.
+- Evidencia CK-019.10: 20 pruebas unitarias/widgets pasan; `flutter analyze` no reporta errores; el flujo `integration_test/reviews_flow_test.dart` pasa en Chrome con Auth y Firestore Emulator (`All tests passed`).
+- Evidencia QA CK-019.11: [registro de pruebas automatizadas](../testing/CK-019.11-evidencia-qa.md); faltan QA manual, despliegue remoto y verificar/migrar datos legados.
 
 ## Dependencias
 

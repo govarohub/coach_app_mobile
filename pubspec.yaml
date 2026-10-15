@@ -5,7 +5,7 @@ description: "A new Flutter project."
 publish_to: 'none'
 
 # Application version and build number.
-version: 1.0.0+13
+version: 1.0.0+15
 
 environment:
   sdk: ^3.12.2
@@ -40,6 +40,8 @@ dependencies:
 dev_dependencies:
   # Flutter testing framework.
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
 
   # Recommended Flutter lint rules.
