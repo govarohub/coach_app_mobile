@@ -32,6 +32,56 @@ void main() {
       expect(ReviewBusinessRules.normalizeComment(null), isNull);
     });
 
+    test('normalizes the public client name and rejects oversized names', () {
+      expect(
+        ReviewBusinessRules.normalizeClientName('  Alberto Valenzo  '),
+        'Alberto Valenzo',
+      );
+      expect(
+        () => ReviewBusinessRules.normalizeClientName(null),
+        throwsArgumentError,
+      );
+      expect(
+        () => ReviewBusinessRules.normalizeClientName('  '),
+        throwsArgumentError,
+      );
+      expect(
+        () => ReviewBusinessRules.normalizeClientName('A' * 101),
+        throwsArgumentError,
+      );
+    });
+
+    test('resolves legacy generic names from the client profile', () {
+      expect(
+        ReviewBusinessRules.resolveClientName(
+          storedName: 'Alberto Valenzo',
+          profileName: 'Otro Nombre',
+        ),
+        'Alberto Valenzo',
+      );
+      expect(
+        ReviewBusinessRules.resolveClientName(
+          storedName: 'Cliente',
+          profileName: 'Alberto Valenzo',
+        ),
+        'Alberto Valenzo',
+      );
+      expect(
+        ReviewBusinessRules.resolveClientName(
+          storedName: null,
+          profileName: 'Alberto Valenzo',
+        ),
+        'Alberto Valenzo',
+      );
+      expect(
+        ReviewBusinessRules.resolveClientName(
+          storedName: 'Cliente',
+          profileName: null,
+        ),
+        isEmpty,
+      );
+    });
+
     test('rejects comments longer than 500 characters', () {
       expect(
         () => ReviewBusinessRules.normalizeComment('a' * 501),
@@ -43,6 +93,7 @@ void main() {
       final timestamp = DateTime(2026, 10, 13);
       final review = Review(
         reservationId: 'reservation-1',
+        clientName: 'Ana Pérez',
         coachId: 'coach-1',
         rating: 5,
         comment: 'Buena sesión',
@@ -56,6 +107,7 @@ void main() {
         () => ReviewBusinessRules.validateReview(
           Review(
             reservationId: 'reservation-1',
+            clientName: 'Ana Pérez',
             coachId: ' ',
             rating: 5,
             createdAt: timestamp,
@@ -114,6 +166,7 @@ void main() {
       final createdAt = DateTime(2026, 10, 13);
       final review = Review(
         reservationId: 'reservation-1',
+        clientName: 'Ana Pérez',
         coachId: 'coach-1',
         rating: 5,
         createdAt: createdAt,
@@ -125,6 +178,7 @@ void main() {
           existingReview: review,
           reservationId: 'reservation-1',
           reservationClientId: 'client-1',
+          clientName: 'Ana Pérez',
           coachId: 'coach-1',
           createdAt: createdAt,
           authenticatedClientId: 'client-1',
@@ -139,6 +193,7 @@ void main() {
           existingReview: review,
           reservationId: 'reservation-2',
           reservationClientId: 'client-1',
+          clientName: 'Ana Pérez',
           coachId: 'coach-1',
           createdAt: createdAt,
           authenticatedClientId: 'client-1',

@@ -24,5 +24,29 @@ void main() {
         '1:30 PM - 3:15 PM',
       );
     });
+
+    test('permite al Coach confirmar reservas pendientes o confirmadas', () {
+      expect(
+        () => ReservationBusinessRules.validateReservationCanBeCompleted(
+          status: 'pending',
+        ),
+        returnsNormally,
+      );
+      expect(
+        () => ReservationBusinessRules.validateReservationCanBeCompleted(
+          status: 'confirmed',
+        ),
+        returnsNormally,
+      );
+    });
+
+    test('rechaza al Coach completar reservas en estado terminal', () {
+      expect(
+        () => ReservationBusinessRules.validateReservationCanBeCompleted(
+          status: 'cancelled',
+        ),
+        throwsA(isA<StateError>()),
+      );
+    });
   });
 }

@@ -53,6 +53,7 @@ class _PublicReviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final comment = review.comment?.trim();
+    final clientName = review.clientName.trim();
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -61,6 +62,15 @@ class _PublicReviewCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (clientName.isNotEmpty && clientName != 'Cliente') ...[
+              Text(
+                clientName,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 8),
+            ],
             Row(
               children: [
                 const Icon(Icons.star, size: 20),

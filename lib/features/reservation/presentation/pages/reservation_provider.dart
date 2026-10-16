@@ -481,6 +481,50 @@ class ReservationController extends AsyncNotifier<void> {
     }
   }
 
+  /// Completes a reservation from the assigned coach agenda after its end time.
+  Future<void> completeReservationAsCoach({
+    required String reservationId,
+  }) async {
+    state = const AsyncLoading();
+
+    try {
+      final authState = await ref.read(authStateProvider.future);
+      if (authState == null || authState.role.trim() != 'coach') {
+        throw StateError('Solo el Coach asignado puede completar la sesión.');
+      }
+
+      final reservationRepository = ref.read(reservationRepositoryProvider);
+      final reservation = await reservationRepository.getReservation(
+        reservationId,
+      );
+      reservation.validateOfficialStatus();
+
+      if (reservation.coachId != authState.id) {
+        throw StateError('La sesión no pertenece a este Coach.');
+      }
+
+      ReservationBusinessRules.validateReservationCanBeCompleted(
+        status: reservation.status,
+      );
+
+      await reservationRepository.updateReservationStatus(
+        reservationId: reservation.reservationId,
+        status: 'completed',
+      );
+
+      state = const AsyncData(null);
+      ref.invalidate(reservationProvider(reservation.reservationId));
+      ref.invalidate(clientReservationsProvider);
+      ref.invalidate(clientReservationsWithSchedulesProvider);
+      ref.invalidate(coachReservationsProvider(reservation.coachId));
+      ref.invalidate(coachReservationsWithSchedulesProvider(reservation.coachId));
+      ref.invalidate(coachAgendaItemsProvider(reservation.coachId));
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
+  }
+
   /// -------------------------------------------------------------------------
   /// Asocia un pago a una reservación.
   /// -------------------------------------------------------------------------

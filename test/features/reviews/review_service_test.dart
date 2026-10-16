@@ -18,12 +18,14 @@ void main() {
       final eligibility = await service.submitReview(
         reservationId: 'reservation-1',
         authenticatedClientId: 'client-1',
+        clientName: 'Alberto Valenzo',
         rating: 5,
         comment: '  Muy buena sesión  ',
       );
 
       expect(eligibility.reservation.reservationId, 'reservation-1');
       expect(reviewRepository.createdReview?.reservationId, 'reservation-1');
+      expect(reviewRepository.createdReview?.clientName, 'Alberto Valenzo');
       expect(reviewRepository.createdReview?.coachId, 'coach-1');
       expect(reviewRepository.createdReview?.comment, 'Muy buena sesión');
       expect(reviewRepository.updatedRating, isNull);
@@ -40,6 +42,7 @@ void main() {
         service.submitReview(
           reservationId: 'reservation-1',
           authenticatedClientId: 'client-1',
+          clientName: 'Alberto Valenzo',
           rating: 4,
         ),
         throwsA(isA<StateError>()),
@@ -78,6 +81,7 @@ void main() {
         final eligibility = await service.submitReview(
           reservationId: 'reservation-1',
           authenticatedClientId: 'client-1',
+          clientName: 'Alberto Valenzo',
           rating: 3,
           comment: 'Actualizada',
         );
@@ -88,6 +92,25 @@ void main() {
         expect(reviewRepository.createdReview, isNull);
       },
     );
+
+    test('replaces a generic legacy review name when editing', () async {
+      final reviewRepository = _FakeReviewRepository(
+        existingReview: _review(clientName: 'Cliente'),
+      );
+      final service = _createService(
+        reservationStatus: 'completed',
+        reviewRepository: reviewRepository,
+      );
+
+      await service.submitReview(
+        reservationId: 'reservation-1',
+        authenticatedClientId: 'client-1',
+        clientName: 'Alberto Valenzo',
+        rating: 5,
+      );
+
+      expect(reviewRepository.updatedClientName, 'Alberto Valenzo');
+    });
 
     test('rejects an existing review associated with another coach', () async {
       final reviewRepository = _FakeReviewRepository(
@@ -119,10 +142,14 @@ ReviewService _createService({
   );
 }
 
-Review _review({String coachId = 'coach-1'}) {
+Review _review({
+  String clientName = 'Alberto Valenzo',
+  String coachId = 'coach-1',
+}) {
   final createdAt = DateTime(2026, 10, 13);
   return Review(
     reservationId: 'reservation-1',
+    clientName: clientName,
     coachId: coachId,
     rating: 5,
     createdAt: createdAt,
@@ -199,6 +226,7 @@ class _FakeReviewRepository implements ReviewRepository {
   int getReviewCalls = 0;
   int? updatedRating;
   String? updatedComment;
+  String? updatedClientName;
 
   @override
   Future<Review?> getReview(String reservationId) async {
@@ -213,12 +241,14 @@ class _FakeReviewRepository implements ReviewRepository {
   @override
   Future<void> createReview({
     required String reservationId,
+    required String clientName,
     required String coachId,
     required int rating,
     String? comment,
   }) async {
     createdReview = Review(
       reservationId: reservationId,
+      clientName: clientName,
       coachId: coachId,
       rating: rating,
       comment: comment,
@@ -230,9 +260,11 @@ class _FakeReviewRepository implements ReviewRepository {
   @override
   Future<void> updateReview({
     required String reservationId,
+    required String clientName,
     required int rating,
     String? comment,
   }) async {
+    updatedClientName = clientName;
     updatedRating = rating;
     updatedComment = comment;
   }

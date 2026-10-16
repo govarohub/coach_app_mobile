@@ -31,6 +31,18 @@ class ClientProfileModel extends ClientProfile {
 
     final createdAt = data['createdAt'];
     final updatedAt = data['updatedAt'];
+    final storedName = data['name'] as String? ?? '';
+    final firstName = data['firstName'] as String? ?? '';
+    final lastName = data['lastName'] as String? ?? '';
+    final firstLastName = [firstName.trim(), lastName.trim()]
+      .where((part) => part.isNotEmpty)
+      .join(' ');
+    final displayName = data['displayName'] as String? ?? '';
+    final profileName = storedName.trim().isNotEmpty
+      ? storedName.trim()
+      : firstLastName.isNotEmpty
+      ? firstLastName
+      : displayName.trim();
 
     return ClientProfileModel(
       // Utilizamos el uid almacenado en Firestore.
@@ -39,7 +51,7 @@ class ClientProfileModel extends ClientProfile {
 
       // Datos básicos del perfil.
       email: data['email'] as String? ?? '',
-      name: data['name'] as String? ?? '',
+      name: profileName,
       phone: data['phone'] as String?,
 
       // Valores predeterminados para mantener compatibilidad

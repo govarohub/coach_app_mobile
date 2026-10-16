@@ -31,6 +31,7 @@ void main() {
     expect(find.text('Reseñas'), findsOneWidget);
     expect(find.text('5/5'), findsOneWidget);
     expect(find.text('4/5'), findsOneWidget);
+    expect(find.text('Alberto Valenzo'), findsNWidgets(2));
     expect(find.text('13/10/2026'), findsOneWidget);
     expect(find.text('Excelente sesión'), findsOneWidget);
     expect(
@@ -46,6 +47,25 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Aún no hay reseñas.'), findsOneWidget);
+  });
+
+  testWidgets('does not show the generic legacy name Cliente', (tester) async {
+    await tester.pumpWidget(
+      _testApp([
+        _review(
+          reservationId: 'reservation-legacy',
+          rating: 4,
+          comment: 'Buena sesión',
+          createdAt: DateTime(2026, 10, 10),
+          clientName: 'Cliente',
+        ),
+      ]),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cliente'), findsNothing);
+    expect(find.text('4/5'), findsOneWidget);
+    expect(find.text('Buena sesión'), findsOneWidget);
   });
 }
 
@@ -69,9 +89,11 @@ Review _review({
   required int rating,
   required String comment,
   required DateTime createdAt,
+  String clientName = 'Alberto Valenzo',
 }) {
   return Review(
     reservationId: reservationId,
+    clientName: clientName,
     coachId: 'coach-1',
     rating: rating,
     comment: comment,

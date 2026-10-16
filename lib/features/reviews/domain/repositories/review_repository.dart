@@ -10,6 +10,7 @@ abstract interface class ReviewRepository {
 
   Future<void> createReview({
     required String reservationId,
+    required String clientName,
     required String coachId,
     required int rating,
     String? comment,
@@ -17,6 +18,7 @@ abstract interface class ReviewRepository {
 
   Future<void> updateReview({
     required String reservationId,
+    required String clientName,
     required int rating,
     String? comment,
   });

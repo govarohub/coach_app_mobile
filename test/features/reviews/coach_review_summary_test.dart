@@ -28,6 +28,7 @@ Review _review(String reservationId, int rating) {
   final now = DateTime(2026, 10, 13);
   return Review(
     reservationId: reservationId,
+    clientName: 'Alberto Valenzo',
     coachId: 'coach-1',
     rating: rating,
     createdAt: now,

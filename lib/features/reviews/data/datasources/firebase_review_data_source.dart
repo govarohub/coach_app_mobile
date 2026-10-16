@@ -25,18 +25,22 @@ class FirebaseReviewDataSource {
     _validateIdentifier(coachId, 'coachId');
     return _reviewsCollection
         .where('coachId', isEqualTo: coachId.trim())
-        .orderBy('createdAt', descending: true)
         .get();
   }
 
   Future<void> addReview({
     required String reservationId,
+    required String clientName,
     required String coachId,
     required int rating,
     String? comment,
   }) async {
     _validateIdentifier(reservationId, 'reservationId');
     _validateIdentifier(coachId, 'coachId');
+    final normalizedClientName = clientName.trim();
+    if (normalizedClientName.isEmpty || normalizedClientName.runes.length > 100) {
+      throw ArgumentError.value(clientName, 'clientName');
+    }
 
     final document = _reviewsCollection.doc(reservationId.trim());
     await _firestore.runTransaction<void>((transaction) async {
@@ -47,6 +51,7 @@ class FirebaseReviewDataSource {
 
       transaction.set(document, {
         'reservationId': document.id,
+        'clientName': normalizedClientName,
         'coachId': coachId.trim(),
         'rating': rating,
         if (comment != null && comment.isNotEmpty) 'comment': comment,
@@ -58,13 +63,19 @@ class FirebaseReviewDataSource {
 
   Future<void> updateReview({
     required String reservationId,
+    required String clientName,
     required int rating,
     String? comment,
   }) {
     _validateIdentifier(reservationId, 'reservationId');
+    final normalizedClientName = clientName.trim();
+    if (normalizedClientName.isEmpty || normalizedClientName.runes.length > 100) {
+      throw ArgumentError.value(clientName, 'clientName');
+    }
 
     return _reviewsCollection.doc(reservationId.trim()).update({
       'clientId': FieldValue.delete(),
+      'clientName': normalizedClientName,
       'rating': rating,
       'comment': comment == null || comment.isEmpty
           ? FieldValue.delete()

@@ -9,6 +9,7 @@ import '../../domain/services/review_business_rules.dart';
 class ReviewModel extends Review {
   const ReviewModel({
     required super.reservationId,
+    required super.clientName,
     required super.coachId,
     required super.rating,
     super.comment,
@@ -18,6 +19,7 @@ class ReviewModel extends Review {
 
   factory ReviewModel.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> document,
+    {String? clientNameFallback,}
   ) {
     final data = document.data();
     if (data == null) {
@@ -25,6 +27,7 @@ class ReviewModel extends Review {
     }
 
     final reservationId = data['reservationId'];
+    final rawClientName = data['clientName'];
     final coachId = data['coachId'];
     final rating = data['rating'];
     final comment = data['comment'];
@@ -39,6 +42,11 @@ class ReviewModel extends Review {
     if (coachId is! String) {
       throw StateError(
         'La reseña ${document.id} no contiene el Coach asociado.',
+      );
+    }
+    if (rawClientName != null && rawClientName is! String) {
+      throw StateError(
+        'La reseña ${document.id} contiene un clientName no válido.',
       );
     }
     if (rating is! int) {
@@ -59,6 +67,10 @@ class ReviewModel extends Review {
 
     final review = ReviewModel(
       reservationId: reservationId,
+      clientName: ReviewBusinessRules.resolveClientName(
+        storedName: rawClientName is String ? rawClientName : null,
+        profileName: clientNameFallback,
+      ),
       coachId: coachId,
       rating: rating,
       comment: comment as String?,

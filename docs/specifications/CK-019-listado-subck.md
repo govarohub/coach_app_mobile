@@ -38,9 +38,9 @@
 - Widget tests de reseñas públicas: `test/features/reviews/presentation/coach_reviews_section_test.dart`
 - Reglas de seguridad: `firestore.rules`
 - Especificación de seguridad: [CK-019.9](CK-019.9-seguridad-firestore.md)
-- Estado CK-019.9: reglas compiladas y verificadas en emulador; despliegue remoto e inspección/migración de reseñas antiguas pendientes.
+- Estado CK-019.9: reglas e índices desplegados el 2026-10-16; pendiente confirmar que no haya reseñas legadas con `clientId`.
 - Evidencia CK-019.10: 20 pruebas unitarias/widgets pasan; `flutter analyze` no reporta errores; el flujo `integration_test/reviews_flow_test.dart` pasa en Chrome con Auth y Firestore Emulator (`All tests passed`).
-- Evidencia QA CK-019.11: [registro de pruebas automatizadas](../testing/CK-019.11-evidencia-qa.md); faltan QA manual, despliegue remoto y verificar/migrar datos legados.
+- Evidencia QA CK-019.11: [registro de QA](../testing/CK-019.11-evidencia-qa.md); faltan QA manual, consulta real del perfil y verificar datos legados.
 
 ## Dependencias
 

@@ -9,6 +9,42 @@ class ReviewBusinessRules {
   static const int minimumRating = 1;
   static const int maximumRating = 5;
   static const int maximumCommentLength = 500;
+  static const int maximumClientNameLength = 100;
+
+  static String normalizeClientName(String? clientName) {
+    final normalizedName = clientName?.trim();
+    if (normalizedName == null || normalizedName.isEmpty) {
+      throw ArgumentError(
+        'El perfil del cliente debe tener un nombre antes de reseñar.',
+      );
+    }
+    if (normalizedName.runes.length > maximumClientNameLength) {
+      throw ArgumentError.value(
+        clientName,
+        'clientName',
+        'El nombre público no puede superar 100 caracteres.',
+      );
+    }
+    return normalizedName;
+  }
+
+  static String resolveClientName({
+    required String? storedName,
+    required String? profileName,
+  }) {
+    final normalizedStoredName = storedName?.trim();
+    if (normalizedStoredName != null &&
+        normalizedStoredName.isNotEmpty &&
+        normalizedStoredName != 'Cliente') {
+      return normalizeClientName(normalizedStoredName);
+    }
+
+    final normalizedProfileName = profileName?.trim();
+    if (normalizedProfileName == null || normalizedProfileName.isEmpty) {
+      return '';
+    }
+    return normalizeClientName(normalizedProfileName);
+  }
 
   /// Rejects values outside 1-5 and non-integer numeric values.
   static void validateRating(num rating) {
@@ -53,6 +89,10 @@ class ReviewBusinessRules {
   static void validateReview(Review review) {
     _validateIdentifier(review.reservationId, 'reservationId');
     _validateIdentifier(review.coachId, 'coachId');
+    if (review.clientName.trim().isNotEmpty &&
+        review.clientName.trim() != 'Cliente') {
+      normalizeClientName(review.clientName);
+    }
 
     validateReviewContent(rating: review.rating, comment: review.comment);
     validateTimestamps(
@@ -92,6 +132,7 @@ class ReviewBusinessRules {
     required Review existingReview,
     required String reservationId,
     required String reservationClientId,
+    required String clientName,
     required String coachId,
     required DateTime createdAt,
     required String authenticatedClientId,
@@ -114,6 +155,9 @@ class ReviewBusinessRules {
       throw StateError('Un Coach no puede reseñar su propia sesión.');
     }
 
+    if (clientName.trim().isNotEmpty && clientName.trim() != 'Cliente') {
+      normalizeClientName(clientName);
+    }
     validateReviewContent(rating: rating, comment: comment);
   }
 

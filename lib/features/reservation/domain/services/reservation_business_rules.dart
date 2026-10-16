@@ -90,6 +90,20 @@ class ReservationBusinessRules {
     }
   }
 
+  /// Validates a coach's confirmation of a completed session.
+  static void validateReservationCanBeCompleted({
+    required String status,
+  }) {
+    validateReservationStatus(status);
+
+    if (status != 'pending' && status != 'confirmed') {
+      throw StateError(
+        'Solo se pueden completar reservaciones pendientes o confirmadas.',
+      );
+    }
+
+  }
+
   /// -------------------------------------------------------------------------
   /// Formatea una hora en formato de 12 horas con AM/PM.
   /// -------------------------------------------------------------------------

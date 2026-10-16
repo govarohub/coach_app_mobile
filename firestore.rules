@@ -6,6 +6,18 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function coachCompletesReservation(reservationId) {
+      let reservationPath = /databases/$(database)/documents/reservations/$(reservationId);
+      return isSignedIn()
+        && get(reservationPath).data.coachId == request.auth.uid
+        && (get(reservationPath).data.status == 'pending'
+          || get(reservationPath).data.status == 'confirmed')
+        && request.resource.data.status == 'completed'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status'
+        ]);
+    }
+
     function ownsCompletedReservation(reservationId, coachId) {
       let reservationPath = /databases/$(database)/documents/reservations/$(reservationId);
       return isSignedIn()
@@ -20,6 +32,7 @@ service cloud.firestore {
       let data = request.resource.data;
       return data.keys().hasAll([
           'reservationId',
+          'clientName',
           'coachId',
           'rating',
           'createdAt',
@@ -27,6 +40,7 @@ service cloud.firestore {
         ])
         && data.keys().hasOnly([
           'reservationId',
+          'clientName',
           'coachId',
           'rating',
           'comment',
@@ -34,6 +48,9 @@ service cloud.firestore {
           'updatedAt'
         ])
         && data.reservationId is string
+        && data.clientName is string
+        && data.clientName.size() > 0
+        && data.clientName.size() <= 100
         && data.coachId is string
         && data.rating is int
         && data.rating >= 1
@@ -56,6 +73,9 @@ service cloud.firestore {
 
       allow update: if hasValidReviewFields()
         && request.resource.data.reservationId == resource.data.reservationId
+        && request.resource.data.clientName is string
+        && request.resource.data.clientName.size() > 0
+        && request.resource.data.clientName.size() <= 100
         && request.resource.data.coachId == resource.data.coachId
         && request.resource.data.createdAt == resource.data.createdAt
         && request.resource.data.updatedAt == request.time
@@ -63,6 +83,7 @@ service cloud.firestore {
           'rating',
           'comment',
           'updatedAt',
+          'clientName',
           'clientId'
         ])
         && ownsCompletedReservation(
@@ -73,9 +94,25 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /reservations/{reservationId} {
+      allow read: if isSignedIn();
+
+      allow create: if isSignedIn()
+        && request.resource.data.clientId == request.auth.uid
+        && request.resource.data.status == 'pending';
+
+      allow update: if isSignedIn()
+        && (request.resource.data.status == resource.data.status
+          || coachCompletesReservation(reservationId));
+
+      allow delete: if isSignedIn();
+    }
+
     // Preserve the existing authenticated access policy for other collections.
     match /{collection}/{document=**} {
-      allow read, write: if isSignedIn() && collection != 'reviews';
+      allow read, write: if isSignedIn()
+        && collection != 'reviews'
+        && collection != 'reservations';
     }
   }
 }

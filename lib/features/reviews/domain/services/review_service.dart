@@ -62,12 +62,16 @@ class ReviewService {
   Future<ReviewEligibility> submitReview({
     required String reservationId,
     required String authenticatedClientId,
+    required String clientName,
     required int rating,
     String? comment,
   }) async {
     final eligibility = await checkEligibility(
       reservationId: reservationId,
       authenticatedClientId: authenticatedClientId,
+    );
+    final normalizedClientName = ReviewBusinessRules.normalizeClientName(
+      clientName,
     );
     final normalizedComment = ReviewBusinessRules.normalizeComment(comment);
 
@@ -80,6 +84,7 @@ class ReviewService {
 
       await _reviewRepository.createReview(
         reservationId: eligibility.reservation.reservationId,
+        clientName: normalizedClientName,
         coachId: eligibility.reservation.coachId,
         rating: rating,
         comment: normalizedComment,
@@ -91,6 +96,7 @@ class ReviewService {
       existingReview: existingReview,
       reservationId: eligibility.reservation.reservationId,
       reservationClientId: eligibility.reservation.clientId,
+      clientName: normalizedClientName,
       coachId: eligibility.reservation.coachId,
       createdAt: existingReview.createdAt,
       authenticatedClientId: authenticatedClientId,
@@ -100,6 +106,7 @@ class ReviewService {
 
     await _reviewRepository.updateReview(
       reservationId: eligibility.reservation.reservationId,
+      clientName: normalizedClientName,
       rating: rating,
       comment: normalizedComment,
     );
@@ -115,6 +122,7 @@ class ReviewService {
       existingReview: existingReview,
       reservationId: reservation.reservationId,
       reservationClientId: reservation.clientId,
+      clientName: existingReview.clientName,
       coachId: reservation.coachId,
       createdAt: existingReview.createdAt,
       authenticatedClientId: authenticatedClientId,

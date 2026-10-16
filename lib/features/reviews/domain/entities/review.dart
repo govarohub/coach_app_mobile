@@ -6,6 +6,7 @@
 class Review {
   const Review({
     required this.reservationId,
+    required this.clientName,
     required this.coachId,
     required this.rating,
     this.comment,
@@ -15,6 +16,9 @@ class Review {
 
   /// Reservation ID and Firestore document ID for this review.
   final String reservationId;
+
+  /// Public display name captured from the authenticated client's profile.
+  final String clientName;
 
   /// UID of the coach reviewed by the client.
   final String coachId;

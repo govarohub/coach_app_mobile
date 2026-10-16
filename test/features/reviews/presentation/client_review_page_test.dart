@@ -85,6 +85,7 @@ Review _review({required int rating, required String comment}) {
   final now = DateTime(2026, 10, 13);
   return Review(
     reservationId: 'reservation-1',
+    clientName: 'Alberto Valenzo',
     coachId: 'coach-1',
     rating: rating,
     comment: comment,

@@ -1,12 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../authentication/presentation/providers/auth_state_provider.dart';
+import '../../profile/presentation/pages/profile_provider.dart';
 import '../../reservation/presentation/pages/reservation_provider.dart';
 import '../data/datasources/firebase_review_data_source.dart';
 import '../data/repositories/review_repository_impl.dart';
 import '../domain/entities/coach_review_summary.dart';
 import '../domain/entities/review.dart';
 import '../domain/repositories/review_repository.dart';
+import '../domain/services/review_business_rules.dart';
 import '../domain/services/review_service.dart';
 
 final firebaseReviewDataSourceProvider = Provider<FirebaseReviewDataSource>((
@@ -16,7 +18,21 @@ final firebaseReviewDataSourceProvider = Provider<FirebaseReviewDataSource>((
 });
 
 final reviewRepositoryProvider = Provider<ReviewRepository>((ref) {
-  return ReviewRepositoryImpl(ref.watch(firebaseReviewDataSourceProvider));
+  final reservationRepository = ref.watch(reservationRepositoryProvider);
+  final clientProfileRepository = ref.watch(clientProfileRepositoryProvider);
+
+  return ReviewRepositoryImpl(
+    ref.watch(firebaseReviewDataSourceProvider),
+    (reservationId) async {
+      final reservation = await reservationRepository.getReservation(
+        reservationId,
+      );
+      final clientProfile = await clientProfileRepository.getProfile(
+        reservation.clientId,
+      );
+      return clientProfile.name;
+    },
+  );
 });
 
 final reviewServiceProvider = Provider<ReviewService>((ref) {
@@ -76,11 +92,19 @@ class ReviewController extends AsyncNotifier<void> {
         throw StateError('No existe una sesión de usuario activa.');
       }
 
+        final clientProfile = await ref
+          .read(clientProfileRepositoryProvider)
+          .getProfile(authState.id);
+        final clientName = ReviewBusinessRules.normalizeClientName(
+        clientProfile.name,
+        );
+
       final eligibility = await ref
           .read(reviewServiceProvider)
           .submitReview(
             reservationId: reservationId,
             authenticatedClientId: authState.id,
+            clientName: clientName,
             rating: rating,
             comment: comment,
           );

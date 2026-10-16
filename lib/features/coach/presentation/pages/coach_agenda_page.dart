@@ -318,7 +318,7 @@ class _CoachAgendaCard extends StatelessWidget {
 /// ---------------------------------------------------------------------------
 /// Tarjeta de una sesión del historial.
 /// ---------------------------------------------------------------------------
-class _CoachAgendaHistoryCard extends StatelessWidget {
+class _CoachAgendaHistoryCard extends ConsumerWidget {
   const _CoachAgendaHistoryCard({
     required this.reservation,
     required this.schedule,
@@ -328,36 +328,108 @@ class _CoachAgendaHistoryCard extends StatelessWidget {
   final CoachSchedule schedule;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeReservation = reservation;
+    final canComplete = activeReservation != null &&
+        (activeReservation.status == 'pending' ||
+        activeReservation.status == 'confirmed');
+    final isUpdating = ref.watch(reservationControllerProvider).isLoading;
+
     return Card(
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
-        leading: const CircleAvatar(
-          child: Icon(Icons.history),
-        ),
-        title: Text(
-          _formatDate(schedule.date),
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text(
-            ReservationBusinessRules.formatTimeRange(
-              schedule.startTime,
-              schedule.endTime,
+      child: Column(
+        children: [
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+            leading: const CircleAvatar(
+              child: Icon(Icons.history),
+            ),
+            title: Text(
+              _formatDate(schedule.date),
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                ReservationBusinessRules.formatTimeRange(
+                  schedule.startTime,
+                  schedule.endTime,
+                ),
+              ),
+            ),
+            trailing: _ReservationStatusLabel(
+              status: reservation?.status ?? schedule.status,
             ),
           ),
-        ),
-        trailing: _ReservationStatusLabel(
-          status: reservation?.status ?? schedule.status,
-        ),
+          if (canComplete)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: isUpdating
+                      ? null
+                      : () => _confirmCompletion(context, ref),
+                  icon: isUpdating
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.task_alt),
+                  label: const Text('Marcar sesión como completada'),
+                ),
+              ),
+            ),
+        ],
       ),
     );
+  }
+
+  Future<void> _confirmCompletion(BuildContext context, WidgetRef ref) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Completar sesión'),
+        content: const Text(
+          'Confirma que la sesión se realizó. El cliente podrá calificarte y dejar una reseña.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Confirmar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      await ref
+          .read(reservationControllerProvider.notifier)
+          .completeReservationAsCoach(
+            reservationId: reservation!.reservationId,
+          );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La sesión quedó completada.')),
+      );
+    } catch (_) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No fue posible completar la sesión.'),
+        ),
+      );
+    }
   }
 
   String _formatDate(DateTime date) {

@@ -1,11 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
+import 'package:coach_app_mobile/features/authentication/domain/entities/app_user.dart';
+import 'package:coach_app_mobile/features/authentication/presentation/providers/auth_state_provider.dart';
 import 'package:coach_app_mobile/features/reservation/data/datasources/firebase_reservation_datasource.dart';
 import 'package:coach_app_mobile/features/reservation/data/repositories/reservation_repository_impl.dart';
+import 'package:coach_app_mobile/features/reservation/presentation/pages/reservation_provider.dart';
 import 'package:coach_app_mobile/features/reviews/data/datasources/firebase_review_data_source.dart';
 import 'package:coach_app_mobile/features/reviews/data/repositories/review_repository_impl.dart';
 import 'package:coach_app_mobile/features/reviews/domain/services/review_service.dart';
@@ -43,12 +47,24 @@ void main() {
     'completed-session owner can create/edit a private public review',
     (tester) async {
       final uniqueSuffix = DateTime.now().microsecondsSinceEpoch;
+      final ownerEmail = 'review-owner-$uniqueSuffix@example.test';
+      const testPassword = 'test-password-123';
       final ownerCredential = await auth.createUserWithEmailAndPassword(
-        email: 'review-owner-$uniqueSuffix@example.test',
-        password: 'test-password-123',
+        email: ownerEmail,
+        password: testPassword,
       );
       final ownerId = ownerCredential.user!.uid;
-      const coachId = 'integration-coach';
+      final completedCoachCredential = await auth
+          .createUserWithEmailAndPassword(
+            email: 'review-coach-$uniqueSuffix@example.test',
+            password: testPassword,
+          );
+      final coachId = completedCoachCredential.user!.uid;
+      await auth.signOut();
+      await auth.signInWithEmailAndPassword(
+        email: ownerEmail,
+        password: testPassword,
+      );
       final completedReservationId = 'completed-$uniqueSuffix';
       final pendingReservationId = 'pending-$uniqueSuffix';
 
@@ -57,7 +73,7 @@ void main() {
         reservationId: completedReservationId,
         clientId: ownerId,
         coachId: coachId,
-        status: 'completed',
+        status: 'pending',
       );
       await _createReservation(
         firestore: firestore,
@@ -65,6 +81,57 @@ void main() {
         clientId: ownerId,
         coachId: coachId,
         status: 'pending',
+      );
+      final completedReservationReference = firestore
+          .collection('reservations')
+          .doc(completedReservationId);
+
+      await expectLater(
+        completedReservationReference.update({'status': 'completed'}),
+        throwsA(isA<FirebaseException>()),
+      );
+
+      await auth.signOut();
+      await auth.createUserWithEmailAndPassword(
+        email: 'review-other-coach-$uniqueSuffix@example.test',
+        password: testPassword,
+      );
+      await expectLater(
+        completedReservationReference.update({'status': 'completed'}),
+        throwsA(isA<FirebaseException>()),
+      );
+
+      await auth.signOut();
+      await auth.signInWithEmailAndPassword(
+        email: 'review-coach-$uniqueSuffix@example.test',
+        password: testPassword,
+      );
+      final providerContainer = ProviderContainer(
+        overrides: [
+          authStateProvider.overrideWith(
+            (ref) => Stream.value(
+              AppUser(
+                id: coachId,
+                email: 'review-coach-$uniqueSuffix@example.test',
+                role: 'coach',
+              ),
+            ),
+          ),
+        ],
+      );
+      addTearDown(providerContainer.dispose);
+
+      await providerContainer
+          .read(reservationControllerProvider.notifier)
+          .completeReservationAsCoach(reservationId: completedReservationId);
+
+      final completedReservation = await completedReservationReference.get();
+      expect(completedReservation.data()?['status'], 'completed');
+
+      await auth.signOut();
+      await auth.signInWithEmailAndPassword(
+        email: ownerEmail,
+        password: testPassword,
       );
 
       final eligibility = await reviewService.checkEligibility(
@@ -76,6 +143,7 @@ void main() {
       await reviewService.submitReview(
         reservationId: completedReservationId,
         authenticatedClientId: ownerId,
+        clientName: 'Alberto Valenzo',
         rating: 4,
         comment: '  Buena sesión  ',
       );
@@ -85,12 +153,14 @@ void main() {
           .doc(completedReservationId);
       final createdReview = await reviewReference.get();
       expect(createdReview.data()?['rating'], 4);
+      expect(createdReview.data()?['clientName'], 'Alberto Valenzo');
       expect(createdReview.data()?['comment'], 'Buena sesión');
       expect(createdReview.data()?.containsKey('clientId'), isFalse);
 
       await reviewService.submitReview(
         reservationId: completedReservationId,
         authenticatedClientId: ownerId,
+        clientName: 'Alberto Valenzo',
         rating: 5,
       );
 
@@ -102,6 +172,7 @@ void main() {
       await expectLater(
         reviewRepository.createReview(
           reservationId: completedReservationId,
+          clientName: 'Alberto Valenzo',
           coachId: coachId,
           rating: 3,
         ),
@@ -111,15 +182,15 @@ void main() {
           .collection('reviews')
           .where('reservationId', isEqualTo: completedReservationId)
           .get();
-      expect(
-        reviewsAfterDuplicateAttempt.docs.map((document) => document.id),
-        [completedReservationId],
-      );
+      expect(reviewsAfterDuplicateAttempt.docs.map((document) => document.id), [
+        completedReservationId,
+      ]);
 
       await expectLater(
         reviewService.submitReview(
           reservationId: pendingReservationId,
           authenticatedClientId: ownerId,
+          clientName: 'Alberto Valenzo',
           rating: 5,
         ),
         throwsA(isA<StateError>()),
@@ -128,6 +199,7 @@ void main() {
       await expectLater(
         reviewRepository.createReview(
           reservationId: pendingReservationId,
+          clientName: 'Alberto Valenzo',
           coachId: coachId,
           rating: 5,
         ),
@@ -142,7 +214,7 @@ void main() {
 
       final otherCredential = await auth.createUserWithEmailAndPassword(
         email: 'review-other-$uniqueSuffix@example.test',
-        password: 'test-password-123',
+        password: testPassword,
       );
       await expectLater(
         reviewService.checkEligibility(
