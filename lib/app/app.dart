@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../features/notifications/data/services/firebase_notification_service.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
 
@@ -32,6 +33,9 @@ class CoachApp extends StatelessWidget {
       darkTheme: AppTheme.dark,
 
       themeMode: ThemeMode.system,
+
+        scaffoldMessengerKey:
+          FirebaseNotificationService.scaffoldMessengerKey,
 
       routerConfig: AppRouter.router,
     );

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../notifications/data/services/firebase_notification_service.dart';
 import '../../domain/entities/app_user.dart';
 import '../providers/auth_state_provider.dart';
 
@@ -118,6 +119,7 @@ class AuthController extends AsyncNotifier<void> {
 
   /// Cierra la sesión.
   Future<void> signOut() async {
+    await FirebaseNotificationService.instance.unregisterCurrentUserToken();
     await ref.read(authRepositoryProvider).signOut();
   }
 }

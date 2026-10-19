@@ -1,5 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- CK-012.6: Permiso para obtener la ubicación precisa del usuario. -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 

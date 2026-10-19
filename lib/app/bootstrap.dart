@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../firebase_options.dart';
+import '../features/notifications/data/services/firebase_notification_service.dart';
 import 'app.dart';
 
 /// ---------------------------------------------------------------------------
@@ -31,6 +32,8 @@ Future<void> bootstrap() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  await FirebaseNotificationService.instance.initialize();
 
   // ProviderScope crea el contenedor global de Riverpod.
   //

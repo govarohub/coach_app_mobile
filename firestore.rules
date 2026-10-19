@@ -108,11 +108,37 @@ service cloud.firestore {
       allow delete: if isSignedIn();
     }
 
+    match /fcmTokens/{tokenId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+
+      allow create, update: if isSignedIn()
+        && request.resource.data.keys().hasAll([
+          'uid',
+          'token',
+          'platform',
+          'updatedAt'
+        ])
+        && request.resource.data.keys().hasOnly([
+          'uid',
+          'token',
+          'platform',
+          'updatedAt'
+        ])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.token is string
+        && request.resource.data.token.size() > 0
+        && request.resource.data.platform is string
+        && request.resource.data.updatedAt == request.time;
+
+      allow delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+    }
+
     // Preserve the existing authenticated access policy for other collections.
     match /{collection}/{document=**} {
       allow read, write: if isSignedIn()
         && collection != 'reviews'
-        && collection != 'reservations';
+        && collection != 'reservations'
+        && collection != 'fcmTokens';
     }
   }
 }
