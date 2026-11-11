@@ -5,7 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+
 
 import '../../../../app/router/app_router.dart';
 import '../../../../app/router/route_names.dart';
@@ -23,27 +23,23 @@ class FirebaseNotificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final Map<String, String> _activeTokens = {};
 
-  StreamSubscription<User?>? _authSubscription;
-  StreamSubscription<String>? _tokenSubscription;
-  StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
-  StreamSubscription<RemoteMessage>? _openedMessageSubscription;
   bool _initialized = false;
 
   Future<void> initialize() async {
     if (_initialized) return;
     _initialized = true;
 
-    _foregroundMessageSubscription = FirebaseMessaging.onMessage.listen(
+    FirebaseMessaging.onMessage.listen(
       _showForegroundMessage,
     );
-    _openedMessageSubscription = FirebaseMessaging.onMessageOpenedApp.listen(
+    FirebaseMessaging.onMessageOpenedApp.listen(
       _openReservations,
     );
-    _tokenSubscription = _messaging.onTokenRefresh.listen((token) {
+    _messaging.onTokenRefresh.listen((token) {
       final uid = _auth.currentUser?.uid;
       if (uid != null) unawaited(_saveToken(uid, token));
     });
-    _authSubscription = _auth.authStateChanges().listen((user) {
+    _auth.authStateChanges().listen((user) {
       if (user != null) unawaited(_registerUser(user.uid));
     });
 

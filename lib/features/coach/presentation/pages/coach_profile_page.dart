@@ -48,7 +48,7 @@ class CoachProfilePage extends ConsumerWidget {
           }
 
           final coachAsync = ref.watch(
-            coachProfileProvider(user.id),
+            ownCoachProfileProvider(user.id),
           );
 
           final profileAsync = ref.watch(profileProvider);
@@ -61,7 +61,7 @@ class CoachProfilePage extends ConsumerWidget {
               message: error.toString(),
               onRetry: () {
                 ref.invalidate(
-                  coachProfileProvider(user.id),
+                  ownCoachProfileProvider(user.id),
                 );
               },
             ),
@@ -71,13 +71,13 @@ class CoachProfilePage extends ConsumerWidget {
               return RefreshIndicator(
                 onRefresh: () async {
                   ref.invalidate(
-                    coachProfileProvider(user.id),
+                    ownCoachProfileProvider(user.id),
                   );
 
                   ref.invalidate(profileProvider);
 
                   await ref.read(
-                    coachProfileProvider(user.id).future,
+                    ownCoachProfileProvider(user.id).future,
                   );
                 },
                 child: ListView(
@@ -204,6 +204,9 @@ class CoachProfilePage extends ConsumerWidget {
                         if (result == true && context.mounted) {
                           ref.invalidate(
                             coachProfileProvider(user.id),
+                          );
+                          ref.invalidate(
+                            ownCoachProfileProvider(user.id),
                           );
 
                           ref.invalidate(profileProvider);

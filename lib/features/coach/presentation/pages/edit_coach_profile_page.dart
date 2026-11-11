@@ -8,7 +8,7 @@ import '../../domain/entities/coach_specialty.dart';
 import '../../domain/entities/coach_specialty_catalog.dart';
 import 'coach_profile_provider.dart';
 import 'coach_search_provider.dart'
-  show getCurrentUserPosition, lookupAddressFromCoordinates;
+    show getCurrentUserPosition, lookupAddressFromCoordinates;
 
 /// Página de edición del perfil profesional.
 class EditCoachProfilePage extends ConsumerStatefulWidget {
@@ -20,8 +20,7 @@ class EditCoachProfilePage extends ConsumerStatefulWidget {
 }
 
 /// Estado de la página de edición.
-class _EditCoachProfilePageState
-    extends ConsumerState<EditCoachProfilePage> {
+class _EditCoachProfilePageState extends ConsumerState<EditCoachProfilePage> {
   /// Clave para validar el formulario.
   final _formKey = GlobalKey<FormState>();
 
@@ -164,7 +163,7 @@ class _EditCoachProfilePageState
             content: Text(
               address == null
                   ? 'Coordenadas actualizadas. No se encontró una dirección; '
-                      'puedes capturarla manualmente.'
+                        'puedes capturarla manualmente.'
                   : 'Dirección actualizada. Guarda los cambios para aplicarla.',
             ),
           ),
@@ -189,9 +188,9 @@ class _EditCoachProfilePageState
       }
 
       final message = error.toString().replaceFirst('Bad state: ', '');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) {
         setState(() {
@@ -201,115 +200,25 @@ class _EditCoachProfilePageState
     }
   }
 
-  /// Abre el selector de especialidades.
-  Future<void> _selectSpecialties() async {
-    // El catálogo central contiene las nuevas especialidades disponibles.
+  /// Incluye especialidades previamente guardadas que ya no estén en catálogo.
+  List<CoachSpecialty> _availableSpecialties() {
     final catalog = CoachSpecialtyCatalog.items;
-
-    // Si el catálogo está vacío, conservamos las especialidades que ya tiene
-    // este perfil como opciones administrables. Esto permite recuperar una
-    // especialidad eliminada temporalmente sin inventar valores del catálogo.
     final existingSpecialties = _selectedSpecialties
         .map(
-          (specialtyId) => CoachSpecialty(
-        id: specialtyId,
-        name: specialtyId,
-      ),
-    )
+          (specialtyId) => CoachSpecialty(id: specialtyId, name: specialtyId),
+        )
         .toList();
 
     final catalogIds = catalog
         .map((specialty) => specialty.id.trim().toLowerCase())
         .toSet();
 
-    final availableSpecialties = <CoachSpecialty>[
+    return <CoachSpecialty>[
       ...catalog,
       ...existingSpecialties.where(
-            (specialty) =>
-        !catalogIds.contains(specialty.id.trim().toLowerCase()),
+        (specialty) => !catalogIds.contains(specialty.id.trim().toLowerCase()),
       ),
     ];
-
-    // Si no existen opciones del catálogo ni especialidades actuales,
-    // informamos al usuario que todavía no hay opciones disponibles.
-    if (availableSpecialties.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'El catálogo de especialidades todavía no contiene opciones.',
-          ),
-        ),
-      );
-      return;
-    }
-
-    // Copia temporal para permitir cancelar sin modificar la selección actual.
-    final temporarySelection = <String>{
-      ..._selectedSpecialties,
-    };
-
-    final result = await showDialog<Set<String>>(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: const Text('Seleccionar especialidades'),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: availableSpecialties.map((specialty) {
-                    final selected = temporarySelection.contains(
-                      specialty.id,
-                    );
-
-                    return CheckboxListTile(
-                      value: selected,
-                      title: Text(specialty.name),
-                      contentPadding: EdgeInsets.zero,
-                      onChanged: (value) {
-                        setDialogState(() {
-                          if (value == true) {
-                            temporarySelection.add(specialty.id);
-                          } else {
-                            temporarySelection.remove(specialty.id);
-                          }
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    context.pop();
-                  },
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: () {
-                    context.pop(temporarySelection);
-                  },
-                  child: const Text('Aceptar'),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-
-    // Si el usuario canceló, conservamos la selección original.
-    if (result == null) {
-      return;
-    }
-
-    setState(() {
-      _selectedSpecialties
-        ..clear()
-        ..addAll(result);
-    });
   }
 
   /// Guarda la información profesional del Coach.
@@ -330,9 +239,7 @@ class _EditCoachProfilePageState
     if (_selectedSpecialties.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Debes seleccionar al menos una especialidad.',
-          ),
+          content: Text('Debes seleccionar al menos una especialidad.'),
         ),
       );
       return;
@@ -343,18 +250,12 @@ class _EditCoachProfilePageState
     // Verifica que exista una sesión válida.
     if (user == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No existe un usuario autenticado.',
-          ),
-        ),
+        const SnackBar(content: Text('No existe un usuario autenticado.')),
       );
       return;
     }
 
-    final experience = int.tryParse(
-      _experienceController.text.trim(),
-    );
+    final experience = int.tryParse(_experienceController.text.trim());
 
     final hourlyRate = double.tryParse(
       _hourlyRateController.text.trim().replaceAll(',', '.'),
@@ -385,18 +286,13 @@ class _EditCoachProfilePageState
       if (latitude == null || longitude == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'La latitud y longitud deben capturarse juntas.',
-            ),
+            content: Text('La latitud y longitud deben capturarse juntas.'),
           ),
         );
         return;
       }
 
-      location = CoachLocation(
-        latitude: latitude,
-        longitude: longitude,
-      );
+      location = CoachLocation(latitude: latitude, longitude: longitude);
     }
 
     // Activa el estado de carga antes de comunicarse con Firestore.
@@ -410,19 +306,19 @@ class _EditCoachProfilePageState
       await ref
           .read(coachProfileControllerProvider.notifier)
           .updateProfile(
-        coachId: user.id,
-        specialties: List<String>.from(_selectedSpecialties),
-        experienceYears: experience,
-        hourlyRate: hourlyRate,
-        bio: _bioController.text.trim().isEmpty
-            ? null
-            : _bioController.text.trim(),
-        address: _addressController.text.trim().isEmpty
-          ? null
-          : _addressController.text.trim(),
-        location: location,
-        available: true,
-      );
+            coachId: user.id,
+            specialties: List<String>.from(_selectedSpecialties),
+            experienceYears: experience,
+            hourlyRate: hourlyRate,
+            bio: _bioController.text.trim().isEmpty
+                ? null
+                : _bioController.text.trim(),
+            address: _addressController.text.trim().isEmpty
+                ? null
+                : _addressController.text.trim(),
+            location: location,
+            available: true,
+          );
 
       if (!mounted) {
         return;
@@ -431,9 +327,7 @@ class _EditCoachProfilePageState
       // El Controller utiliza AsyncValue.guard(), por lo que
       // cualquier error de Repository/Firestore queda reflejado
       // en su estado.
-      final state = ref.read(
-        coachProfileControllerProvider,
-      );
+      final state = ref.read(coachProfileControllerProvider);
 
       if (state.hasError) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -448,15 +342,11 @@ class _EditCoachProfilePageState
 
       // Fuerza la lectura nuevamente para obtener los datos
       // realmente almacenados en Firestore.
-      ref.invalidate(
-        coachProfileProvider(user.id),
-      );
+      ref.invalidate(coachProfileProvider(user.id));
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Perfil profesional actualizado correctamente.',
-          ),
+          content: Text('Perfil profesional actualizado correctamente.'),
         ),
       );
 
@@ -469,11 +359,7 @@ class _EditCoachProfilePageState
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'No fue posible actualizar el perfil: $error',
-          ),
-        ),
+        SnackBar(content: Text('No fue posible actualizar el perfil: $error')),
       );
     } finally {
       // Libera el estado de carga independientemente del resultado.
@@ -491,32 +377,26 @@ class _EditCoachProfilePageState
 
     if (user == null) {
       return const Scaffold(
-        body: Center(
-          child: Text('No hay un usuario autenticado.'),
-        ),
+        body: Center(child: Text('No hay un usuario autenticado.')),
       );
     }
 
-    final profileAsync = ref.watch(
-      coachProfileProvider(user.id),
-    );
+    final profileAsync = ref.watch(ownCoachProfileProvider(user.id));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Editar perfil profesional'),
-      ),
+      appBar: AppBar(title: const Text('Editar perfil profesional')),
       body: profileAsync.when(
-        loading: () => const Center(
-          child: CircularProgressIndicator(),
-        ),
-        error: (error, stackTrace) => Center(
-          child: Text(
-            'No fue posible cargar el perfil: $error',
-          ),
-        ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stackTrace) =>
+            Center(child: Text('No fue posible cargar el perfil: $error')),
         data: (profile) {
           // Inicializamos los controles con los datos actuales.
           _initializeFields(profile);
+          final availableSpecialties = _availableSpecialties();
+          final menuWidth = (MediaQuery.sizeOf(context).width - 32).clamp(
+            240.0,
+            360.0,
+          );
 
           return Form(
             key: _formKey,
@@ -528,23 +408,75 @@ class _EditCoachProfilePageState
                 /// -------------------------------------------------------------
                 const Text(
                   'Especialidades',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
 
                 const SizedBox(height: 8),
 
-                OutlinedButton.icon(
-                  // Evita abrir el selector mientras se está guardando.
-                  onPressed: _saving ? null : _selectSpecialties,
-                  icon: const Icon(Icons.category_outlined),
-                  label: Text(
-                    _selectedSpecialties.isEmpty
-                        ? 'Seleccionar especialidades'
-                        : 'Modificar especialidades',
-                  ),
+                MenuAnchor(
+                  menuChildren: [
+                    SizedBox(
+                      width: menuWidth,
+                      height: 360,
+                      child: ListView(
+                        padding: EdgeInsets.zero,
+                        children: availableSpecialties.map((specialty) {
+                          return CheckboxListTile(
+                            dense: true,
+                            value: _selectedSpecialties.contains(specialty.id),
+                            title: Text(specialty.name),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                            ),
+                            onChanged: _saving
+                                ? null
+                                : (selected) {
+                                    setState(() {
+                                      if (selected == true) {
+                                        _selectedSpecialties.add(specialty.id);
+                                      } else {
+                                        _selectedSpecialties.remove(
+                                          specialty.id,
+                                        );
+                                      }
+                                    });
+                                  },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                  builder: (context, controller, child) {
+                    return OutlinedButton(
+                      onPressed: _saving
+                          ? null
+                          : () {
+                              if (controller.isOpen) {
+                                controller.close();
+                              } else {
+                                controller.open();
+                              }
+                            },
+                      child: Row(
+                        children: [
+                          const Icon(Icons.category_outlined),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _selectedSpecialties.isEmpty
+                                  ? 'Seleccionar especialidades'
+                                  : _selectedSpecialties.length == 1
+                                  ? '1 especialidad seleccionada'
+                                  : '${_selectedSpecialties.length} '
+                                        'especialidades seleccionadas',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          const Icon(Icons.arrow_drop_down),
+                        ],
+                      ),
+                    );
+                  },
                 ),
 
                 if (_selectedSpecialties.isNotEmpty) ...[
@@ -555,10 +487,8 @@ class _EditCoachProfilePageState
                     runSpacing: 8,
                     children: _selectedSpecialties.map((specialtyId) {
                       // Busca el nombre visible dentro del catálogo.
-                      final catalogSpecialty =
-                      CoachSpecialtyCatalog.items.where(
-                            (specialty) => specialty.id == specialtyId,
-                      );
+                      final catalogSpecialty = CoachSpecialtyCatalog.items
+                          .where((specialty) => specialty.id == specialtyId);
 
                       final name = catalogSpecialty.isNotEmpty
                           ? catalogSpecialty.first.name
@@ -588,9 +518,7 @@ class _EditCoachProfilePageState
                     labelText: 'Años de experiencia',
                   ),
                   validator: (value) {
-                    final experience = int.tryParse(
-                      value?.trim() ?? '',
-                    );
+                    final experience = int.tryParse(value?.trim() ?? '');
 
                     if (experience == null || experience < 0) {
                       return 'Captura un número válido.';
@@ -634,9 +562,7 @@ class _EditCoachProfilePageState
                 TextFormField(
                   controller: _bioController,
                   maxLines: 4,
-                  decoration: const InputDecoration(
-                    labelText: 'Biografía',
-                  ),
+                  decoration: const InputDecoration(labelText: 'Biografía'),
                 ),
 
                 const SizedBox(height: 16),
@@ -691,12 +617,10 @@ class _EditCoachProfilePageState
                   onPressed: _saving ? null : _save,
                   child: _saving
                       ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                    ),
-                  )
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
                       : const Text('Guardar cambios'),
                 ),
               ],

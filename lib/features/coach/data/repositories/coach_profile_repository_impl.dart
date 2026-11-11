@@ -1,6 +1,7 @@
 import '../../domain/entities/coach_profile.dart';
 import '../../domain/entities/coach_public_identity.dart';
 import '../../domain/repositories/coach_profile_repository.dart';
+import '../../../profile/data/models/client_profile_model.dart';
 import '../datasources/firebase_coach_datasource.dart';
 import '../models/coach_profile_model.dart';
 
@@ -43,6 +44,18 @@ class CoachProfileRepositoryImpl implements CoachProfileRepository {
 
     // Convierte el documento Firestore en la entidad de dominio.
     return CoachProfileModel.fromFirestore(document);
+  }
+
+  @override
+  Future<CoachProfile> getOrCreateOwnProfile(String coachId) async {
+    _validateCoachId(coachId);
+    final document = await _dataSource.getCoachDocument(coachId);
+    if (document.exists) {
+      return CoachProfileModel.fromFirestore(document);
+    }
+
+    await _dataSource.createCoachProfileIfMissing(coachId);
+    return getProfile(coachId);
   }
 
   /// -------------------------------------------------------------------------
@@ -95,8 +108,7 @@ class CoachProfileRepositoryImpl implements CoachProfileRepository {
       );
     }
 
-    // El nombre público se obtiene del campo existente `name`.
-    final name = data['name'] as String? ?? '';
+    final name = ClientProfileModel.fromFirestore(document).name;
 
     // La identidad pública requiere un nombre válido.
     if (name.trim().isEmpty) {

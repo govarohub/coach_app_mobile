@@ -16,6 +16,9 @@ abstract interface class CoachProfileRepository {
   /// Obtiene el perfil profesional de un Coach específico.
   Future<CoachProfile> getProfile(String coachId);
 
+  /// Obtiene o crea el perfil profesional del coach autenticado.
+  Future<CoachProfile> getOrCreateOwnProfile(String coachId);
+
   /// Obtiene todos los perfiles profesionales registrados.
   ///
   /// CK-012.2:

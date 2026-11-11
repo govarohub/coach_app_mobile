@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../authentication/presentation/providers/auth_state_provider.dart';
 import '../../data/datasources/firebase_coach_datasource.dart';
 import '../../data/repositories/coach_profile_repository_impl.dart';
 import '../../domain/entities/coach_profile.dart';
@@ -37,6 +38,16 @@ FutureProvider.family<CoachProfile, String>((ref, coachId) async {
   final repository = ref.watch(coachProfileRepositoryProvider);
 
   return repository.getProfile(coachId);
+});
+
+final ownCoachProfileProvider =
+FutureProvider.family<CoachProfile, String>((ref, coachId) async {
+  final user = await ref.watch(authStateProvider.future);
+  if (user == null || user.id != coachId || user.role != 'coach') {
+    throw StateError('El perfil profesional solo está disponible para su coach.');
+  }
+
+  return ref.watch(coachProfileRepositoryProvider).getOrCreateOwnProfile(coachId);
 });
 
 /// ---------------------------------------------------------------------------
@@ -96,6 +107,7 @@ class CoachProfileController extends AsyncNotifier<void> {
 
       // Fuerza la recarga del perfil después de guardar.
       ref.invalidate(coachProfileProvider(coachId));
+      ref.invalidate(ownCoachProfileProvider(coachId));
     });
   }
 }

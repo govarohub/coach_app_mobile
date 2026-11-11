@@ -102,7 +102,9 @@ class CoachSchedulePage extends ConsumerWidget {
         /// ESTADO DE DATOS
         /// -------------------------------------------------------------------
         data: (schedules) {
-          final sortedSchedules = [...schedules]
+          final sortedSchedules = schedules
+              .where((schedule) => schedule.status != 'reserved')
+              .toList()
             ..sort((a, b) {
               final dateCompare = a.date.compareTo(b.date);
               if (dateCompare != 0) {
@@ -116,8 +118,8 @@ class CoachSchedulePage extends ConsumerWidget {
           /// ---------------------------------------------------------------
           /// CK-015.9
           ///
-          /// Cuando la consulta es correcta pero no existen horarios,
-          /// se presenta el estado vacío.
+          /// Los horarios reservados se muestran en "Mi agenda", no en
+          /// la disponibilidad que el Coach puede administrar.
           /// ---------------------------------------------------------------
           if (sortedSchedules.isEmpty) {
             return const _ScheduleEmptyState();
@@ -1056,7 +1058,7 @@ class _ScheduleEmptyState extends StatelessWidget {
             const SizedBox(height: 16),
 
             Text(
-              'No tienes horarios registrados.',
+              'No tienes horarios disponibles.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleLarge,
             ),
@@ -1064,7 +1066,8 @@ class _ScheduleEmptyState extends StatelessWidget {
             const SizedBox(height: 8),
 
             Text(
-              'Aquí aparecerá tu disponibilidad cuando agregues horarios.',
+              'Los horarios reservados aparecen en "Mi agenda". '
+              'Agrega otro horario para ofrecer más disponibilidad.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),

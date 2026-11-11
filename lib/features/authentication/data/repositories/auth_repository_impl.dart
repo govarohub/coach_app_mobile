@@ -137,6 +137,48 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<AppUser> signUpCoach({
+    required String email,
+    required String password,
+    required String firstName,
+    required String lastName,
+  }) async {
+    final credential = await _dataSource.signUp(
+      email: email,
+      password: password,
+    );
+
+    final user = credential.user!;
+
+    final displayName = '$firstName $lastName'.trim();
+
+    await _dataSource.updateDisplayName(displayName);
+
+    final model = UserModel(
+      id: user.uid,
+      email: email,
+      displayName: displayName,
+      firstName: firstName,
+      lastName: lastName,
+
+      // Registros de coach tienen rol 'coach'.
+      role: 'coach',
+
+      profileCompleted: false,
+      emailVerified: user.emailVerified,
+    );
+
+    await _dataSource.saveUserDocument(
+      uid: user.uid,
+      data: model.toFirestore(),
+    );
+
+    await _dataSource.sendEmailVerification();
+
+    return model;
+  }
+
+  @override
   Future<void> sendPasswordResetEmail({required String email}) {
     return _dataSource.sendPasswordResetEmail(email: email);
   }
@@ -161,15 +203,17 @@ class AuthRepositoryImpl implements AuthRepository {
 
     await _dataSource.updateDisplayName(displayName);
 
+    // Conservamos el rol guardado al registrarse (coach o client).
+    final existing = await _dataSource.getUserDocument(user.uid);
+    final existingRole = existing.data()?['role'] as String? ?? 'client';
+
     final model = UserModel(
       id: user.uid,
       email: user.email ?? '',
       displayName: displayName,
       firstName: firstName,
       lastName: lastName,
-
-      // El flujo normal de registro continúa creando clientes.
-      role: 'client',
+      role: existingRole,
 
       profileCompleted: true,
       emailVerified: user.emailVerified,

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/app_routes.dart';
 import '../controllers/auth_controller.dart';
+import '../widgets/registration_password_fields.dart';
 
 /// ---------------------------------------------------------------------------
 /// Coach App Mobile
@@ -29,6 +30,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
   final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmationController = TextEditingController();
 
   @override
   void dispose() {
@@ -36,6 +38,7 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
     _lastNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmationController.dispose();
     super.dispose();
   }
 
@@ -125,17 +128,9 @@ class _RegisterPageState extends ConsumerState<RegisterPage> {
                 },
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: const InputDecoration(labelText: 'Contraseña'),
-                validator: (value) {
-                  if (value == null || value.length < 6) {
-                    return 'La contraseña debe tener al menos 6 caracteres.';
-                  }
-
-                  return null;
-                },
+              RegistrationPasswordFields(
+                passwordController: _passwordController,
+                confirmationController: _confirmationController,
               ),
               const SizedBox(height: 24),
               FilledButton(

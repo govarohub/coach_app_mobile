@@ -70,6 +70,34 @@ class AuthController extends AsyncNotifier<void> {
     }
   }
 
+  /// Registra un usuario coach/entrenador.
+  Future<AppUser> signUpCoach({
+    required String email,
+    required String password,
+    required String firstName,
+    required String lastName,
+  }) async {
+    state = const AsyncLoading();
+
+    try {
+      final user = await ref
+          .read(authRepositoryProvider)
+          .signUpCoach(
+            email: email,
+            password: password,
+            firstName: firstName,
+            lastName: lastName,
+          );
+
+      state = const AsyncData(null);
+
+      return user;
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
+      rethrow;
+    }
+  }
+
   /// Envía recuperación de contraseña.
   Future<void> resetPassword({required String email}) async {
     state = const AsyncLoading();

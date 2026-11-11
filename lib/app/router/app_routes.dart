@@ -15,13 +15,19 @@ abstract final class AppRoutes {
 
   static const login = '/login';
 
+  static const accountTypeSelection = '/account-type-selection';
+
   static const register = '/register';
+
+  static const registerCoach = '/register/coach';
 
   static const forgotPassword = '/forgot-password';
 
   static const verifyEmail = '/verify-email';
 
   static const profileSetup = '/profile/setup';
+
+  static const coachProfileSetup = '/profile/setup/coach';
 
   // ---------------------------------------------------------------------------
   // Home

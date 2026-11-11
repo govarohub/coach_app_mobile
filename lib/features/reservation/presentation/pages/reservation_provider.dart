@@ -209,8 +209,8 @@ CoachSchedule schedule,
   );
 });
 
-/// Obtiene todos los horarios del Coach y asocia la reservación más reciente,
-/// si existe, para mostrar disponibilidad y sesiones reservadas en su agenda.
+/// Obtiene los horarios del Coach que tienen una reservación asociada para
+/// mostrar únicamente sus sesiones reservadas en la agenda.
 final coachAgendaItemsProvider = FutureProvider.family<List<({
   Reservation? reservation,
   CoachSchedule schedule,
@@ -234,7 +234,11 @@ final coachAgendaItemsProvider = FutureProvider.family<List<({
   }
 
   return schedules
-      .where((schedule) => schedule.status != 'blocked')
+      .where(
+        (schedule) =>
+            schedule.status != 'blocked' &&
+            reservationsByScheduleId.containsKey(schedule.scheduleId),
+      )
       .map((schedule) => (
             reservation: reservationsByScheduleId[schedule.scheduleId],
             schedule: schedule,

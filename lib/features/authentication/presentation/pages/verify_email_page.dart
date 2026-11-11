@@ -38,7 +38,21 @@ class _VerifyEmailPageState extends ConsumerState<VerifyEmailPage> {
       }
 
       if (user?.emailVerified == true) {
-        context.go(AppRoutes.profileSetup);
+        // Recargar el usuario autenticado para obtener el rol desde Firestore
+        final appUser = await ref
+            .read(authControllerProvider.notifier)
+            .reloadCurrentUser();
+
+        if (!mounted) {
+          return;
+        }
+
+        // Navegar a la página de perfil según el rol del usuario
+        if (appUser?.role == 'coach') {
+          context.go(AppRoutes.coachProfileSetup);
+        } else {
+          context.go(AppRoutes.profileSetup);
+        }
         return;
       }
 

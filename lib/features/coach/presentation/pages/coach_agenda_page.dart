@@ -17,7 +17,7 @@ import '../../domain/entities/coach_schedule.dart';
 /// Pantalla "Mi agenda" del Coach.
 ///
 /// Responsabilidades:
-/// - Consultar todos los horarios del Coach y sus reservaciones asociadas.
+/// - Consultar las sesiones reservadas del Coach.
 /// - Separar próximas sesiones e historial.
 /// - Mostrar fecha, hora y estado de cada sesión.
 /// - Mostrar loading, error y estado vacío.
@@ -43,7 +43,7 @@ class CoachAgendaPage extends ConsumerWidget {
     /// -----------------------------------------------------------------------
     /// CK-017.6 / CK-017.7
     ///
-    /// Incluye horarios disponibles aunque todavía no tengan reservación.
+    /// La consulta contiene únicamente horarios con una reservación asociada.
     /// -----------------------------------------------------------------------
     final reservationsAsync = ref.watch(
       coachAgendaItemsProvider(coachId),

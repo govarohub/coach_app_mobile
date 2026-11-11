@@ -138,6 +138,28 @@ class _ReservationPageState
         /// Datos obtenidos correctamente.
         /// -------------------------------------------------------------------
         data: (schedules) {
+          final sortedSchedules = [...schedules]
+            ..sort((first, second) {
+              final dateComparison = DateTime(
+                first.date.year,
+                first.date.month,
+                first.date.day,
+              ).compareTo(
+                DateTime(
+                  second.date.year,
+                  second.date.month,
+                  second.date.day,
+                ),
+              );
+
+              if (dateComparison != 0) {
+                return dateComparison;
+              }
+
+              return _timeToMinutes(first.startTime)
+                  .compareTo(_timeToMinutes(second.startTime));
+            });
+
           /// -----------------------------------------------------------------
           /// CK-016.10
           ///
@@ -148,7 +170,7 @@ class _ReservationPageState
           ///
           /// Los horarios `blocked` y `reserved` no llegan hasta aquí.
           /// -----------------------------------------------------------------
-          if (schedules.isEmpty) {
+          if (sortedSchedules.isEmpty) {
             return const _ReservationEmptyState();
           }
 
@@ -202,7 +224,7 @@ class _ReservationPageState
                   Expanded(
                     child: ListView.separated(
                       padding: const EdgeInsets.all(16),
-                      itemCount: schedules.length,
+                      itemCount: sortedSchedules.length,
                       separatorBuilder: (
                           context,
                           index,
@@ -215,7 +237,7 @@ class _ReservationPageState
                           context,
                           index,
                           ) {
-                        final schedule = schedules[index];
+                        final schedule = sortedSchedules[index];
 
                         final isSelected =
                             _selectedSchedule?.scheduleId ==
@@ -328,6 +350,14 @@ class _ReservationPageState
         },
       ),
     );
+  }
+
+  int _timeToMinutes(String time) {
+    final parts = time.split(':');
+    final hour = parts.isNotEmpty ? int.tryParse(parts[0]) ?? 0 : 0;
+    final minute = parts.length > 1 ? int.tryParse(parts[1]) ?? 0 : 0;
+
+    return hour * 60 + minute;
   }
 
   // -------------------------------------------------------------------------

@@ -19,8 +19,16 @@ abstract interface class AuthRepository {
   /// Inicia sesión con correo y contraseña.
   Future<AppUser> signIn({required String email, required String password});
 
-  /// Registra un nuevo usuario.
+  /// Registra un nuevo usuario cliente.
   Future<AppUser> signUp({
+    required String email,
+    required String password,
+    required String firstName,
+    required String lastName,
+  });
+
+  /// Registra un nuevo usuario coach/entrenador.
+  Future<AppUser> signUpCoach({
     required String email,
     required String password,
     required String firstName,

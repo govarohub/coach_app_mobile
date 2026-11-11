@@ -86,6 +86,34 @@ class FirebaseCoachDataSource {
     return _firestore.collection('coaches').doc(coachId).get();
   }
 
+  Future<void> createCoachProfileIfMissing(String coachId) {
+    final coachRef = _firestore.collection('coaches').doc(coachId);
+    final userRef = _firestore.collection('users').doc(coachId);
+
+    return _firestore.runTransaction((transaction) async {
+      final coach = await transaction.get(coachRef);
+      if (coach.exists) return;
+
+      final user = await transaction.get(userRef);
+      if (user.data()?['role'] != 'coach') {
+        throw StateError('El usuario no tiene el rol de coach.');
+      }
+
+      transaction.set(coachRef, {
+        'coachId': coachId,
+        'specialties': <String>[],
+        'experienceYears': 0,
+        'hourlyRate': 0.0,
+        'rating': 0.0,
+        'verified': false,
+        'bio': null,
+        'address': null,
+        'location': null,
+        'available': false,
+      });
+    });
+  }
+
   /// Obtiene todos los documentos de la colección de Coaches.
   ///
   /// CK-012.2:

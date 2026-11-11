@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/router/app_routes.dart';
 import '../../../authentication/presentation/controllers/auth_controller.dart';
 import '../../../authentication/presentation/providers/auth_state_provider.dart';
+import '../../../profile/presentation/pages/profile_provider.dart';
 
 /// ---------------------------------------------------------------------------
 /// Coach App Mobile
@@ -152,7 +153,7 @@ class HomePage extends ConsumerWidget {
 /// ---------------------------------------------------------------------------
 /// Contenido principal del Dashboard.
 /// ---------------------------------------------------------------------------
-class _AuthenticatedHomeContent extends StatelessWidget {
+class _AuthenticatedHomeContent extends ConsumerWidget {
   const _AuthenticatedHomeContent({
     required this.userId,
     required this.displayName,
@@ -177,8 +178,9 @@ class _AuthenticatedHomeContent extends StatelessWidget {
   final String role;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final greetingName = _resolveGreetingName();
+    final profile = ref.watch(profileProvider).value;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -191,6 +193,7 @@ class _AuthenticatedHomeContent extends StatelessWidget {
           _UserHeader(
             displayName: greetingName,
             email: email,
+            photoUrl: profile?.photoUrl,
             onProfilePressed: () {
               context.go(AppRoutes.profile);
             },
@@ -442,22 +445,46 @@ class _UserHeader extends StatelessWidget {
   const _UserHeader({
     required this.displayName,
     required this.email,
+    required this.photoUrl,
     required this.onProfilePressed,
   });
 
   final String displayName;
   final String email;
+  final String? photoUrl;
   final VoidCallback onProfilePressed;
 
   @override
   Widget build(BuildContext context) {
+    final normalizedPhotoUrl = photoUrl?.trim();
+    final hasPhoto = normalizedPhotoUrl != null &&
+        normalizedPhotoUrl.isNotEmpty;
+
     return Row(
       children: [
         CircleAvatar(
           radius: 28,
-          child: Text(
-            _initial,
-            style: Theme.of(context).textTheme.titleMedium,
+          child: ClipOval(
+            child: SizedBox(
+              width: 56,
+              height: 56,
+              child: hasPhoto
+                  ? Image.network(
+                      normalizedPhotoUrl,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) {
+                          return child;
+                        }
+
+                        return _initialWidget(context);
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return _initialWidget(context);
+                      },
+                    )
+                  : _initialWidget(context),
+            ),
           ),
         ),
 
@@ -512,5 +539,13 @@ class _UserHeader extends StatelessWidget {
 
     return value.substring(0, 1).toUpperCase();
   }
-}
 
+  Widget _initialWidget(BuildContext context) {
+    return Center(
+      child: Text(
+        _initial,
+        style: Theme.of(context).textTheme.titleMedium,
+      ),
+    );
+  }
+}

@@ -3,6 +3,7 @@ import '../../domain/repositories/favorites_repository.dart';
 import '../../../coach/data/datasources/firebase_coach_datasource.dart';
 import '../../../coach/data/models/coach_profile_model.dart';
 import '../../../coach/domain/entities/coach_public_identity.dart';
+import '../../../profile/data/models/client_profile_model.dart';
 import '../datasources/firebase_favorites_datasource.dart';
 import '../models/favorite_coach_model.dart';
 
@@ -150,16 +151,16 @@ class FavoritesRepositoryImpl implements FavoritesRepository {
       );
     }
 
-    final data = userDocument.data();
-
-    if (data == null) {
+    final userData = userDocument.data();
+    if (userData == null) {
       throw StateError(
         'El documento del usuario del Coach '
-            '${model.coachId} no contiene información.',
+        '${model.coachId} no contiene información.',
       );
     }
 
-    final name = data['name'] as String? ?? '';
+    final identityModel = ClientProfileModel.fromFirestore(userDocument);
+    final name = identityModel.name;
 
     if (name.trim().isEmpty) {
       throw StateError(
@@ -170,7 +171,7 @@ class FavoritesRepositoryImpl implements FavoritesRepository {
     // Reutilizamos la entidad existente de CK-013.
     final identity = CoachPublicIdentity(
       name: name.trim(),
-      photoUrl: data['photoUrl'] as String?,
+      photoUrl: userData['photoUrl'] as String?,
     );
 
     return FavoriteCoach(

@@ -3,6 +3,9 @@ import 'package:go_router/go_router.dart';
 
 
 // Authentication
+import '../../features/authentication/presentation/pages/account_type_selection_page.dart';
+import '../../features/authentication/presentation/pages/coach_register_page.dart';
+import '../../features/authentication/presentation/pages/coach_profile_setup_page.dart';
 import '../../features/authentication/presentation/pages/forgot_password_page.dart';
 import '../../features/authentication/presentation/pages/login_page.dart';
 import '../../features/authentication/presentation/pages/profile_setup_page.dart';
@@ -107,17 +110,17 @@ abstract final class AppRouter {
       ),
 
       // -----------------------------------------------------------------------
-      // Home
+      // Account type selection
       // -----------------------------------------------------------------------
 
       GoRoute(
-        path: AppRoutes.home,
-        name: RouteNames.home,
-        builder: (context, state) => const HomePage(),
+        path: AppRoutes.accountTypeSelection,
+        name: RouteNames.accountTypeSelection,
+        builder: (context, state) => const AccountTypeSelectionPage(),
       ),
 
       // -----------------------------------------------------------------------
-      // Register
+      // Register (Client)
       // -----------------------------------------------------------------------
 
       GoRoute(
@@ -127,8 +130,24 @@ abstract final class AppRouter {
       ),
 
       // -----------------------------------------------------------------------
-      // Forgot password
+      // Register (Coach)
       // -----------------------------------------------------------------------
+
+      GoRoute(
+        path: AppRoutes.registerCoach,
+        name: RouteNames.registerCoach,
+        builder: (context, state) => const CoachRegisterPage(),
+      ),
+
+      // -----------------------------------------------------------------------
+      // Home
+      // -----------------------------------------------------------------------
+
+      GoRoute(
+        path: AppRoutes.home,
+        name: RouteNames.home,
+        builder: (context, state) => const HomePage(),
+      ),
 
       GoRoute(
         path: AppRoutes.forgotPassword,
@@ -154,6 +173,16 @@ abstract final class AppRouter {
         path: AppRoutes.profileSetup,
         name: RouteNames.profileSetup,
         builder: (context, state) => const ProfileSetupPage(),
+      ),
+
+      // -----------------------------------------------------------------------
+      // Coach profile setup
+      // -----------------------------------------------------------------------
+
+      GoRoute(
+        path: AppRoutes.coachProfileSetup,
+        name: RouteNames.coachProfileSetup,
+        builder: (context, state) => const CoachProfileSetupPage(),
       ),
 
       // -----------------------------------------------------------------------

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/route_names.dart';
 import '../../domain/entities/coach_profile.dart';
+import 'coach_profile_provider.dart';
 import 'coach_search_provider.dart';
 
 /// ---------------------------------------------------------------------------
@@ -490,7 +491,7 @@ class _CoachSearchPageState extends ConsumerState<CoachSearchPage> {
 /// Se mantiene dentro del mismo archivo para respetar la estructura actual
 /// y evitar crear una nueva carpeta o archivo innecesario.
 /// ---------------------------------------------------------------------------
-class _CoachResultCard extends StatelessWidget {
+class _CoachResultCard extends ConsumerWidget {
   const _CoachResultCard({
     required this.coach,
     required this.distanceKm,
@@ -500,7 +501,13 @@ class _CoachResultCard extends StatelessWidget {
   final double? distanceKm;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final identity = ref.watch(
+      coachPublicIdentityProvider(coach.coachId),
+    );
+    final photoUrl = identity.value?.photoUrl?.trim();
+    final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
@@ -533,9 +540,40 @@ class _CoachResultCard extends StatelessWidget {
                   /// Avatar visual.
                   CircleAvatar(
                     radius: 28,
-                    child: const Icon(
-                      Icons.person,
-                      size: 30,
+                    child: ClipOval(
+                      child: SizedBox(
+                        width: 56,
+                        height: 56,
+                        child: hasPhoto
+                            ? Image.network(
+                                photoUrl,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (
+                                  context,
+                                  child,
+                                  loadingProgress,
+                                ) {
+                                  if (loadingProgress == null) {
+                                    return child;
+                                  }
+
+                                  return const Icon(
+                                    Icons.person,
+                                    size: 30,
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return const Icon(
+                                    Icons.person,
+                                    size: 30,
+                                  );
+                                },
+                              )
+                            : const Icon(
+                                Icons.person,
+                                size: 30,
+                              ),
+                      ),
                     ),
                   ),
 
