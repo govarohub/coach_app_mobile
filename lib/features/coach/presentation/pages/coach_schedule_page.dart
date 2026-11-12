@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../reservation/domain/services/reservation_business_rules.dart';
@@ -378,6 +379,10 @@ class _ScheduleFormState extends ConsumerState<_ScheduleForm> {
   /// Hora final.
   late TimeOfDay _endTime;
 
+  late String _selectedStatus;
+  bool _invalidStartTime = false;
+  bool _invalidEndTime = false;
+
   /// Evita múltiples operaciones simultáneas.
   bool _saving = false;
 
@@ -389,6 +394,7 @@ class _ScheduleFormState extends ConsumerState<_ScheduleForm> {
     super.initState();
 
     final schedule = widget.schedule;
+    _selectedStatus = schedule?.status ?? 'available';
 
     if (schedule == null) {
       /// ---------------------------------------------------------------
@@ -405,8 +411,12 @@ class _ScheduleFormState extends ConsumerState<_ScheduleForm> {
     /// Valores existentes para edición.
     /// ---------------------------------------------------------------
     _selectedDate = schedule.date;
-    _startTime = _parseTime(schedule.startTime);
-    _endTime = _parseTime(schedule.endTime);
+    final startTime = _parseTime(schedule.startTime);
+    final endTime = _parseTime(schedule.endTime);
+    _invalidStartTime = startTime == null;
+    _invalidEndTime = endTime == null;
+    _startTime = startTime ?? TimeOfDay.now();
+    _endTime = endTime ?? _addHour(_startTime);
   }
 
   /// -------------------------------------------------------------------------
@@ -415,6 +425,16 @@ class _ScheduleFormState extends ConsumerState<_ScheduleForm> {
   Future<void> _selectDate() async {
     final selectedDate = await showDatePicker(
       context: context,
+      builder: (context, child) => Localizations.override(
+        context: context,
+        locale: const Locale('es'),
+        delegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        child: child,
+      ),
       initialDate: _selectedDate,
       firstDate: DateTime(
         DateTime.now().year - 1,
@@ -448,6 +468,7 @@ class _ScheduleFormState extends ConsumerState<_ScheduleForm> {
 
     setState(() {
       _startTime = selectedTime;
+      _invalidStartTime = false;
     });
   }
 
@@ -466,6 +487,7 @@ class _ScheduleFormState extends ConsumerState<_ScheduleForm> {
 
     setState(() {
       _endTime = selectedTime;
+      _invalidEndTime = false;
     });
   }
 
@@ -475,6 +497,11 @@ class _ScheduleFormState extends ConsumerState<_ScheduleForm> {
   /// Guarda el horario mediante el Controller existente.
   /// -------------------------------------------------------------------------
   Future<void> _saveSchedule() async {
+    if (_invalidStartTime || _invalidEndTime) {
+      _showMessage('Selecciona una hora válida para el horario.');
+      return;
+    }
+
     final startMinutes =
         _startTime.hour * 60 + _startTime.minute;
 
@@ -506,8 +533,7 @@ class _ScheduleFormState extends ConsumerState<_ScheduleForm> {
         /// ---------------------------------------------------------------
         /// CK-015.7
         ///
-        /// Actualiza fecha y horas.
-        /// Conserva el estado actual.
+        /// Actualiza fecha, horas y estado.
         /// ---------------------------------------------------------------
         final schedule = widget.schedule!;
 
@@ -515,9 +541,9 @@ class _ScheduleFormState extends ConsumerState<_ScheduleForm> {
           coachId: widget.coachId,
           scheduleId: schedule.scheduleId,
           date: _selectedDate,
-          startTime: _formatTime(_startTime),
-          endTime: _formatTime(_endTime),
-          status: schedule.status,
+          startTime: _serializeTime(_startTime),
+          endTime: _serializeTime(_endTime),
+          status: _selectedStatus,
         );
       } else {
         /// ---------------------------------------------------------------
@@ -528,8 +554,8 @@ class _ScheduleFormState extends ConsumerState<_ScheduleForm> {
         await controller.createSchedule(
           coachId: widget.coachId,
           date: _selectedDate,
-          startTime: _formatTime(_startTime),
-          endTime: _formatTime(_endTime),
+          startTime: _serializeTime(_startTime),
+          endTime: _serializeTime(_endTime),
           status: 'available',
         );
       }
@@ -582,32 +608,35 @@ class _ScheduleFormState extends ConsumerState<_ScheduleForm> {
     return '$displayHour:$minute $suffix';
   }
 
-  /// -------------------------------------------------------------------------
-  /// Convierte HH:mm a TimeOfDay.
-  /// -------------------------------------------------------------------------
-  TimeOfDay _parseTime(String value) {
-    final parts = value.split(':');
+  String _serializeTime(TimeOfDay time) {
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
+  }
 
-    if (parts.length != 2) {
-      return TimeOfDay.now();
+  /// -------------------------------------------------------------------------
+  /// Acepta horarios HH:mm y los guardados anteriormente con AM/PM.
+  /// -------------------------------------------------------------------------
+  TimeOfDay? _parseTime(String value) {
+    final match = RegExp(
+      r'^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$',
+      caseSensitive: false,
+    ).firstMatch(value.trim());
+    if (match == null) return null;
+
+    final hour = int.parse(match.group(1)!);
+    final minute = int.parse(match.group(2)!);
+    final suffix = match.group(3)?.toUpperCase();
+    if (minute > 59 ||
+        (suffix == null && hour > 23) ||
+        (suffix != null && (hour < 1 || hour > 12))) {
+      return null;
     }
 
-    final hour = int.tryParse(parts[0]);
-    final minute = int.tryParse(parts[1]);
-
-    if (hour == null ||
-        minute == null ||
-        hour < 0 ||
-        hour > 23 ||
-        minute < 0 ||
-        minute > 59) {
-      return TimeOfDay.now();
-    }
-
-    return TimeOfDay(
-      hour: hour,
-      minute: minute,
-    );
+    final normalizedHour = suffix == null
+        ? hour
+        : hour % 12 + (suffix == 'PM' ? 12 : 0);
+    return TimeOfDay(hour: normalizedHour, minute: minute);
   }
 
   /// -------------------------------------------------------------------------
@@ -709,18 +738,37 @@ class _ScheduleFormState extends ConsumerState<_ScheduleForm> {
             const SizedBox(height: 16),
 
             /// Estado actual.
-            ListTile(
+            if (_isEditing)
+              DropdownButtonFormField<String>(
+                initialValue: _selectedStatus,
+                decoration: const InputDecoration(labelText: 'Estado'),
+                items: const [
+                  DropdownMenuItem(
+                    value: 'available',
+                    child: Text('Disponible'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'blocked',
+                    child: Text('No disponible'),
+                  ),
+                ],
+                onChanged: _saving ? null : (status) {
+                  if (status != null) {
+                    setState(() {
+                      _selectedStatus = status;
+                    });
+                  }
+                },
+              )
+            else
+              ListTile(
               contentPadding: EdgeInsets.zero,
               leading: Icon(
-                _statusIcon(
-                  widget.schedule?.status ?? 'available',
-                ),
+                _statusIcon(_selectedStatus),
               ),
               title: const Text('Estado'),
               subtitle: Text(
-                _statusLabel(
-                  widget.schedule?.status ?? 'available',
-                ),
+                _statusLabel(_selectedStatus),
               ),
             ),
 

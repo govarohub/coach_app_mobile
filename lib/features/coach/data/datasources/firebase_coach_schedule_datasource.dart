@@ -144,11 +144,28 @@ class FirebaseCoachScheduleDataSource {
     _validateTime(endTime, fieldName: 'endTime');
     _validateStatus(status);
 
-    return _schedulesCollection.doc(scheduleId.trim()).update({
-      'date': Timestamp.fromDate(date),
-      'startTime': startTime.trim(),
-      'endTime': endTime.trim(),
-      'status': status.trim(),
+    if (status != 'available' && status != 'blocked') {
+      throw StateError('No se puede asignar el estado reservado manualmente.');
+    }
+
+    final document = _schedulesCollection.doc(scheduleId.trim());
+    return _firestore.runTransaction((transaction) async {
+      final snapshot = await transaction.get(document);
+      if (!snapshot.exists) {
+        throw StateError('No existe el horario solicitado.');
+      }
+
+      final currentStatus = snapshot.data()?['status'];
+      if (currentStatus != 'available' && currentStatus != 'blocked') {
+        throw StateError('No se puede editar un horario reservado o inválido.');
+      }
+
+      transaction.update(document, {
+        'date': Timestamp.fromDate(date),
+        'startTime': startTime.trim(),
+        'endTime': endTime.trim(),
+        'status': status.trim(),
+      });
     });
   }
 
