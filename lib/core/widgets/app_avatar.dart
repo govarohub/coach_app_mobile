@@ -44,8 +44,8 @@ class AppAvatar extends StatelessWidget {
     this.backgroundColor = AppColors.primary,
     this.textColor = Colors.white,
     this.border,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   double get _diameter => switch (size) {
     AvatarSize.small => AppDimensions.avatarSmall,
@@ -91,7 +91,7 @@ class AppAvatar extends StatelessWidget {
         child: Image.network(
           imageUrl!,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _buildInitials(),
+          errorBuilder: (_, __, _) => _buildInitials(), // ignore: unnecessary_underscores
           loadingBuilder: (context, child, progress) {
             if (progress == null) return child;
             return Center(
@@ -147,8 +147,8 @@ class AvatarBadge extends StatelessWidget {
   const AvatarBadge({
     this.type = AvatarBadgeType.verified,
     this.size = 16,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

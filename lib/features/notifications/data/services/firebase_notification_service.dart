@@ -5,7 +5,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
 import '../../../../app/router/app_router.dart';
 import '../../../../app/router/route_names.dart';
@@ -23,10 +22,15 @@ class FirebaseNotificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final Map<String, String> _activeTokens = {};
 
-  StreamSubscription<User?>? _authSubscription;
-  StreamSubscription<String>? _tokenSubscription;
-  StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
-  StreamSubscription<RemoteMessage>? _openedMessageSubscription;
+  // Held for cleanup/disposal if needed
+  // ignore: unused_field
+  late StreamSubscription<User?> _authSubscription;
+  // ignore: unused_field
+  late StreamSubscription<String> _tokenSubscription;
+  // ignore: unused_field
+  late StreamSubscription<RemoteMessage> _foregroundMessageSubscription;
+  // ignore: unused_field
+  late StreamSubscription<RemoteMessage> _openedMessageSubscription;
   bool _initialized = false;
 
   Future<void> initialize() async {
