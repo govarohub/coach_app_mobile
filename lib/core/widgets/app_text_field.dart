@@ -77,8 +77,8 @@ class AppTextField extends StatefulWidget {
     this.maxLength,
     this.readOnly = false,
     this.enabled = true,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();

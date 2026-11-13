@@ -47,8 +47,8 @@ class AppEmptyState extends StatelessWidget {
     this.iconSize = 64,
     this.iconColor = AppColors.primary,
     this.mainAxisAlignment = MainAxisAlignment.center,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -140,8 +140,8 @@ class AppErrorState extends StatelessWidget {
     this.retryLabel = 'Reintentar',
     this.onRetry,
     this.errorCode,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

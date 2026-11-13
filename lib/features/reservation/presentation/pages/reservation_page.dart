@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../coach/presentation/pages/coach_profile_provider.dart';
 import '../../../coach/domain/entities/coach_schedule.dart';
 import '../../../coach/presentation/pages/coach_schedule_provider.dart';
+import 'reservation_waiting_page.dart';
 import 'reservation_provider.dart';
 
 /// ---------------------------------------------------------------------------
@@ -27,24 +28,19 @@ import 'reservation_provider.dart';
 ///   Provider -> Repository -> DataSource.
 /// ---------------------------------------------------------------------------
 class ReservationPage extends ConsumerStatefulWidget {
-  const ReservationPage({
-    super.key,
-    required this.coachId,
-  });
+  const ReservationPage({super.key, required this.coachId});
 
   /// Identificador del Coach cuya sesión se desea reservar.
   final String coachId;
 
   @override
-  ConsumerState<ReservationPage> createState() =>
-      _ReservationPageState();
+  ConsumerState<ReservationPage> createState() => _ReservationPageState();
 }
 
 /// ---------------------------------------------------------------------------
 /// Estado de la pantalla de reservación.
 /// ---------------------------------------------------------------------------
-class _ReservationPageState
-    extends ConsumerState<ReservationPage> {
+class _ReservationPageState extends ConsumerState<ReservationPage> {
   /// Horario seleccionado por el cliente.
   CoachSchedule? _selectedSchedule;
 
@@ -61,19 +57,13 @@ class _ReservationPageState
     /// consulta del Repository.
     /// -----------------------------------------------------------------------
     final schedulesAsync = ref.watch(
-      coachAvailableSchedulesProvider(
-        widget.coachId,
-      ),
+      coachAvailableSchedulesProvider(widget.coachId),
     );
 
     /// -----------------------------------------------------------------------
     /// Información profesional del Coach.
     /// -----------------------------------------------------------------------
-    final coachAsync = ref.watch(
-      coachProfileProvider(
-        widget.coachId,
-      ),
-    );
+    final coachAsync = ref.watch(coachProfileProvider(widget.coachId));
 
     /// -----------------------------------------------------------------------
     /// Estado de la operación de reservación.
@@ -87,18 +77,12 @@ class _ReservationPageState
     /// AsyncData:
     ///     operación finalizada correctamente.
     /// -----------------------------------------------------------------------
-    final reservationState = ref.watch(
-      reservationControllerProvider,
-    );
+    final reservationState = ref.watch(reservationControllerProvider);
 
     final isCreating = reservationState.isLoading;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Reservar sesión',
-        ),
-      ),
+      appBar: AppBar(title: const Text('Reservar sesión')),
 
       /// ---------------------------------------------------------------------
       /// Estado principal de los horarios.
@@ -110,9 +94,7 @@ class _ReservationPageState
         /// Estado de carga de horarios.
         /// -------------------------------------------------------------------
         loading: () {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+          return const Center(child: CircularProgressIndicator());
         },
 
         /// -------------------------------------------------------------------
@@ -125,11 +107,7 @@ class _ReservationPageState
             message: 'No fue posible cargar los horarios.',
             onRetry: () {
               /// Reintenta únicamente la consulta de horarios disponibles.
-              ref.invalidate(
-                coachAvailableSchedulesProvider(
-                  widget.coachId,
-                ),
-              );
+              ref.invalidate(coachAvailableSchedulesProvider(widget.coachId));
             },
           );
         },
@@ -140,24 +118,26 @@ class _ReservationPageState
         data: (schedules) {
           final sortedSchedules = [...schedules]
             ..sort((first, second) {
-              final dateComparison = DateTime(
-                first.date.year,
-                first.date.month,
-                first.date.day,
-              ).compareTo(
-                DateTime(
-                  second.date.year,
-                  second.date.month,
-                  second.date.day,
-                ),
-              );
+              final dateComparison =
+                  DateTime(
+                    first.date.year,
+                    first.date.month,
+                    first.date.day,
+                  ).compareTo(
+                    DateTime(
+                      second.date.year,
+                      second.date.month,
+                      second.date.day,
+                    ),
+                  );
 
               if (dateComparison != 0) {
                 return dateComparison;
               }
 
-              return _timeToMinutes(first.startTime)
-                  .compareTo(_timeToMinutes(second.startTime));
+              return _timeToMinutes(
+                first.startTime,
+              ).compareTo(_timeToMinutes(second.startTime));
             });
 
           /// -----------------------------------------------------------------
@@ -182,9 +162,7 @@ class _ReservationPageState
             /// Estado de carga del perfil.
             /// -----------------------------------------------------------------
             loading: () {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
+              return const Center(child: CircularProgressIndicator());
             },
 
             /// -----------------------------------------------------------------
@@ -192,15 +170,10 @@ class _ReservationPageState
             /// -----------------------------------------------------------------
             error: (error, stackTrace) {
               return _ReservationErrorState(
-                message:
-                'No fue posible cargar la información del Coach.',
+                message: 'No fue posible cargar la información del Coach.',
                 onRetry: () {
                   /// Reintenta únicamente el perfil del Coach.
-                  ref.invalidate(
-                    coachProfileProvider(
-                      widget.coachId,
-                    ),
-                  );
+                  ref.invalidate(coachProfileProvider(widget.coachId));
                 },
               );
             },
@@ -214,9 +187,7 @@ class _ReservationPageState
                   /// ---------------------------------------------------------
                   /// Tarifa del Coach.
                   /// ---------------------------------------------------------
-                  _CoachRateCard(
-                    hourlyRate: coach.hourlyRate,
-                  ),
+                  _CoachRateCard(hourlyRate: coach.hourlyRate),
 
                   /// ---------------------------------------------------------
                   /// Lista de horarios disponibles.
@@ -225,23 +196,15 @@ class _ReservationPageState
                     child: ListView.separated(
                       padding: const EdgeInsets.all(16),
                       itemCount: sortedSchedules.length,
-                      separatorBuilder: (
-                          context,
-                          index,
-                          ) {
-                        return const SizedBox(
-                          height: 12,
-                        );
+                      separatorBuilder: (context, index) {
+                        return const SizedBox(height: 12);
                       },
-                      itemBuilder: (
-                          context,
-                          index,
-                          ) {
+                      itemBuilder: (context, index) {
                         final schedule = sortedSchedules[index];
 
                         final isSelected =
                             _selectedSchedule?.scheduleId ==
-                                schedule.scheduleId;
+                            schedule.scheduleId;
 
                         return _ScheduleCard(
                           schedule: schedule,
@@ -284,12 +247,9 @@ class _ReservationPageState
                           /// -------------------------------------------------
                           if (reservationState.hasError) ...[
                             const _ReservationActionErrorState(
-                              message:
-                              'No fue posible crear la reservación.',
+                              message: 'No fue posible crear la reservación.',
                             ),
-                            const SizedBox(
-                              height: 12,
-                            ),
+                            const SizedBox(height: 12),
                           ],
 
                           /// -------------------------------------------------
@@ -298,36 +258,29 @@ class _ReservationPageState
                           SizedBox(
                             width: double.infinity,
                             child: FilledButton.icon(
-                              onPressed:
-                              _selectedSchedule == null ||
-                                  isCreating
+                              onPressed: _selectedSchedule == null || isCreating
                                   ? null
                                   : () async {
-                                /// El horario seleccionado
-                                /// se pasa completo al método.
-                                await _createPendingReservation(
-                                  schedule:
-                                  _selectedSchedule!,
-                                  amount:
-                                  coach.hourlyRate,
-                                );
-                              },
+                                      /// El horario seleccionado
+                                      /// se pasa completo al método.
+                                      await _createPendingReservation(
+                                        schedule: _selectedSchedule!,
+                                        amount: coach.hourlyRate,
+                                      );
+                                    },
 
                               /// ------------------------------------------------
                               /// Indicador de carga durante la operación.
                               /// ------------------------------------------------
                               icon: isCreating
                                   ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child:
-                                CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              )
-                                  : const Icon(
-                                Icons.event_available,
-                              ),
+                                      width: 18,
+                                      height: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Icon(Icons.event_available),
 
                               /// ------------------------------------------------
                               /// Texto dinámico del botón.
@@ -384,31 +337,30 @@ class _ReservationPageState
       /// Ejecuta la operación mediante el Controller existente.
       /// ---------------------------------------------------------------
       final reservationId = await ref
-          .read(
-        reservationControllerProvider.notifier,
-      )
+          .read(reservationControllerProvider.notifier)
           .createPendingReservationAndReserveSchedule(
-        /// Coach asociado al horario.
-        coachId: widget.coachId,
+            /// Coach asociado al horario.
+            coachId: widget.coachId,
 
-        /// Horario seleccionado.
-        scheduleId: schedule.scheduleId,
+            /// Horario seleccionado.
+            scheduleId: schedule.scheduleId,
 
-        /// Tarifa actual de la sesión.
-        amount: amount,
-      );
+            /// Tarifa actual de la sesión.
+            amount: amount,
+          );
 
       if (!mounted) {
         return;
       }
 
       /// ---------------------------------------------------------------
-      /// Confirmación visual de la operación.
-      /// ---------------------------------------------------------------
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Reservación creada: $reservationId',
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => ReservationWaitingPage(
+            reservationId: reservationId,
+            coachId: widget.coachId,
+            schedule: schedule,
+            amount: amount,
           ),
         ),
       );
@@ -423,11 +375,7 @@ class _ReservationPageState
       /// Aquí solamente mostramos una confirmación visual del error.
       /// ---------------------------------------------------------------
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'No fue posible crear la reservación.',
-          ),
-        ),
+        const SnackBar(content: Text('No fue posible crear la reservación.')),
       );
     }
   }
@@ -437,50 +385,32 @@ class _ReservationPageState
 /// Tarjeta que muestra la tarifa del Coach.
 /// ---------------------------------------------------------------------------
 class _CoachRateCard extends StatelessWidget {
-  const _CoachRateCard({
-    required this.hourlyRate,
-  });
+  const _CoachRateCard({required this.hourlyRate});
 
   final double hourlyRate;
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.fromLTRB(
-        16,
-        16,
-        16,
-        4,
-      ),
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 4),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
-            const Icon(
-              Icons.attach_money,
-            ),
-            const SizedBox(
-              width: 12,
-            ),
+            const Icon(Icons.attach_money),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     'Tarifa por sesión',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleMedium,
+                    style: Theme.of(context).textTheme.titleMedium,
                   ),
-                  const SizedBox(
-                    height: 4,
-                  ),
+                  const SizedBox(height: 4),
                   Text(
                     '\$${hourlyRate.toStringAsFixed(2)}',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodyLarge,
+                    style: Theme.of(context).textTheme.bodyLarge,
                   ),
                 ],
               ),
@@ -517,27 +447,17 @@ class _ScheduleCard extends StatelessWidget {
 
         /// Indicador visual de selección.
         leading: Icon(
-          selected
-              ? Icons.radio_button_checked
-              : Icons.radio_button_off,
+          selected ? Icons.radio_button_checked : Icons.radio_button_off,
         ),
 
         /// Fecha del horario.
-        title: Text(
-          _formatDate(schedule.date),
-        ),
+        title: Text(_formatDate(schedule.date)),
 
         /// Hora inicial y final.
-        subtitle: Text(
-          '${schedule.startTime} - ${schedule.endTime}',
-        ),
+        subtitle: Text('${schedule.startTime} - ${schedule.endTime}'),
 
         /// Confirmación visual del horario seleccionado.
-        trailing: selected
-            ? const Icon(
-          Icons.check_circle,
-        )
-            : null,
+        trailing: selected ? const Icon(Icons.check_circle) : null,
       ),
     );
   }
@@ -546,15 +466,9 @@ class _ScheduleCard extends StatelessWidget {
   /// Formato visual de la fecha.
   /// -------------------------------------------------------------------------
   String _formatDate(DateTime date) {
-    final day = date.day.toString().padLeft(
-      2,
-      '0',
-    );
+    final day = date.day.toString().padLeft(2, '0');
 
-    final month = date.month.toString().padLeft(
-      2,
-      '0',
-    );
+    final month = date.month.toString().padLeft(2, '0');
 
     return '$day/$month/${date.year}';
   }
@@ -578,29 +492,18 @@ class _ReservationEmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.event_busy_outlined,
-              size: 64,
-            ),
-            const SizedBox(
-              height: 16,
-            ),
+            const Icon(Icons.event_busy_outlined, size: 64),
+            const SizedBox(height: 16),
             Text(
               'No hay horarios disponibles.',
               textAlign: TextAlign.center,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium,
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(
-              height: 8,
-            ),
+            const SizedBox(height: 8),
             Text(
               'Actualmente no hay sesiones disponibles para reservar.',
               textAlign: TextAlign.center,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium,
+              style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
         ),
@@ -615,10 +518,7 @@ class _ReservationEmptyState extends StatelessWidget {
 /// Estado de error de carga de información.
 /// ---------------------------------------------------------------------------
 class _ReservationErrorState extends StatelessWidget {
-  const _ReservationErrorState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _ReservationErrorState({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;
@@ -631,36 +531,17 @@ class _ReservationErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 48,
-            ),
-            const SizedBox(
-              height: 16,
-            ),
+            const Icon(Icons.error_outline, size: 48),
+            const SizedBox(height: 16),
             Text(
               'No fue posible cargar la información.',
               textAlign: TextAlign.center,
-              style: Theme.of(context)
-                  .textTheme
-                  .titleMedium,
+              style: Theme.of(context).textTheme.titleMedium,
             ),
-            const SizedBox(
-              height: 8,
-            ),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(
-              height: 16,
-            ),
-            OutlinedButton(
-              onPressed: onRetry,
-              child: const Text(
-                'Reintentar',
-              ),
-            ),
+            const SizedBox(height: 8),
+            Text(message, textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            OutlinedButton(onPressed: onRetry, child: const Text('Reintentar')),
           ],
         ),
       ),
@@ -677,44 +558,28 @@ class _ReservationErrorState extends StatelessWidget {
 /// la lista de horarios.
 /// ---------------------------------------------------------------------------
 class _ReservationActionErrorState extends StatelessWidget {
-  const _ReservationActionErrorState({
-    required this.message,
-  });
+  const _ReservationActionErrorState({required this.message});
 
   final String message;
 
   @override
   Widget build(BuildContext context) {
-    final errorColor =
-        Theme.of(context).colorScheme.error;
+    final errorColor = Theme.of(context).colorScheme.error;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: errorColor,
-        ),
+        border: Border.all(color: errorColor),
       ),
       child: Row(
-        crossAxisAlignment:
-        CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.error_outline,
-            color: errorColor,
-          ),
-          const SizedBox(
-            width: 10,
-          ),
+          Icon(Icons.error_outline, color: errorColor),
+          const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              message,
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium,
-            ),
+            child: Text(message, style: Theme.of(context).textTheme.bodyMedium),
           ),
         ],
       ),

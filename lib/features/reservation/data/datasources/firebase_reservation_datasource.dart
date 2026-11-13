@@ -1,16 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FirebaseReservationDataSource {
-  FirebaseReservationDataSource({
-    FirebaseFirestore? firestore,
-  }) : _firestore = firestore ?? FirebaseFirestore.instance;
+  FirebaseReservationDataSource({FirebaseFirestore? firestore})
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   /// Instancia de Firestore utilizada por este DataSource.
   final FirebaseFirestore _firestore;
 
   /// Referencia a la colección oficial de reservaciones.
-  CollectionReference<Map<String, dynamic>>
-  get _reservationsCollection {
+  CollectionReference<Map<String, dynamic>> get _reservationsCollection {
     return _firestore.collection('reservations');
   }
 
@@ -68,9 +66,16 @@ class FirebaseReservationDataSource {
   }) {
     _validateReservationId(reservationId);
 
-    return _reservationsCollection
-        .doc(reservationId.trim())
-        .get();
+    return _reservationsCollection.doc(reservationId.trim()).get();
+  }
+
+  /// Escucha los cambios de una reservación.
+  Stream<DocumentSnapshot<Map<String, dynamic>>> watchReservationDocument({
+    required String reservationId,
+  }) {
+    _validateReservationId(reservationId);
+
+    return _reservationsCollection.doc(reservationId.trim()).snapshots();
   }
 
   /// -------------------------------------------------------------------------
@@ -86,10 +91,7 @@ class FirebaseReservationDataSource {
     _validateClientId(clientId);
 
     return _reservationsCollection
-        .where(
-      'clientId',
-      isEqualTo: clientId.trim(),
-    )
+        .where('clientId', isEqualTo: clientId.trim())
         .get();
   }
 
@@ -104,10 +106,7 @@ class FirebaseReservationDataSource {
     _validateCoachId(coachId);
 
     return _reservationsCollection
-        .where(
-      'coachId',
-      isEqualTo: coachId.trim(),
-    )
+        .where('coachId', isEqualTo: coachId.trim())
         .get();
   }
 
@@ -118,10 +117,7 @@ class FirebaseReservationDataSource {
     _validateScheduleId(scheduleId);
 
     return _reservationsCollection
-        .where(
-      'scheduleId',
-      isEqualTo: scheduleId.trim(),
-    )
+        .where('scheduleId', isEqualTo: scheduleId.trim())
         .get();
   }
 
@@ -196,9 +192,7 @@ class FirebaseReservationDataSource {
     _validateReservationId(reservationId);
     _validateStatus(status);
 
-    return _reservationsCollection
-        .doc(reservationId.trim())
-        .update({
+    return _reservationsCollection.doc(reservationId.trim()).update({
       'status': status.trim(),
     });
   }
@@ -216,9 +210,7 @@ class FirebaseReservationDataSource {
     _validateReservationId(reservationId);
     _validatePaymentId(paymentId);
 
-    return _reservationsCollection
-        .doc(reservationId.trim())
-        .update({
+    return _reservationsCollection.doc(reservationId.trim()).update({
       'paymentId': paymentId.trim(),
     });
   }
@@ -228,9 +220,7 @@ class FirebaseReservationDataSource {
   /// -------------------------------------------------------------------------
   void _validateReservationId(String reservationId) {
     if (reservationId.trim().isEmpty) {
-      throw ArgumentError(
-        'El identificador de la reservación es obligatorio.',
-      );
+      throw ArgumentError('El identificador de la reservación es obligatorio.');
     }
   }
 
@@ -239,9 +229,7 @@ class FirebaseReservationDataSource {
   /// -------------------------------------------------------------------------
   void _validateClientId(String clientId) {
     if (clientId.trim().isEmpty) {
-      throw ArgumentError(
-        'El identificador del cliente es obligatorio.',
-      );
+      throw ArgumentError('El identificador del cliente es obligatorio.');
     }
   }
 
@@ -250,9 +238,7 @@ class FirebaseReservationDataSource {
   /// -------------------------------------------------------------------------
   void _validateCoachId(String coachId) {
     if (coachId.trim().isEmpty) {
-      throw ArgumentError(
-        'El identificador del Coach es obligatorio.',
-      );
+      throw ArgumentError('El identificador del Coach es obligatorio.');
     }
   }
 
@@ -261,9 +247,7 @@ class FirebaseReservationDataSource {
   /// -------------------------------------------------------------------------
   void _validateScheduleId(String scheduleId) {
     if (scheduleId.trim().isEmpty) {
-      throw ArgumentError(
-        'El identificador del horario es obligatorio.',
-      );
+      throw ArgumentError('El identificador del horario es obligatorio.');
     }
   }
 
@@ -272,9 +256,7 @@ class FirebaseReservationDataSource {
   /// -------------------------------------------------------------------------
   void _validatePaymentId(String paymentId) {
     if (paymentId.trim().isEmpty) {
-      throw ArgumentError(
-        'El identificador del pago es obligatorio.',
-      );
+      throw ArgumentError('El identificador del pago es obligatorio.');
     }
   }
 
@@ -288,17 +270,10 @@ class FirebaseReservationDataSource {
   /// cancelled
   /// -------------------------------------------------------------------------
   void _validateStatus(String status) {
-    const validStatuses = {
-      'pending',
-      'confirmed',
-      'completed',
-      'cancelled',
-    };
+    const validStatuses = {'pending', 'confirmed', 'completed', 'cancelled'};
 
     if (!validStatuses.contains(status.trim())) {
-      throw ArgumentError(
-        'Estado de reservación no válido: $status.',
-      );
+      throw ArgumentError('Estado de reservación no válido: $status.');
     }
   }
 

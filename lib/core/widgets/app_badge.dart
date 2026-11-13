@@ -35,8 +35,8 @@ class AppBadge extends StatelessWidget {
     this.icon,
     this.iconSize = AppDimensions.iconSize,
     this.onTap,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   Color get _backgroundColor => switch (type) {
     BadgeType.success => AppColors.success.withValues(alpha: 0.1),
@@ -111,8 +111,8 @@ class CircleBadge extends StatelessWidget {
   const CircleBadge({
     this.type = BadgeType.success,
     this.size = 12,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   Color get _backgroundColor => switch (type) {
     BadgeType.success => AppColors.success,

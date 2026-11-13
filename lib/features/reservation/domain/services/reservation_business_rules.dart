@@ -27,30 +27,22 @@ class ReservationBusinessRules {
   /// -------------------------------------------------------------------------
   /// Valida que el estado de la reservación sea oficial.
   /// -------------------------------------------------------------------------
-  static void validateReservationStatus(
-      String status,
-      ) {
+  static void validateReservationStatus(String status) {
     final normalizedStatus = status.trim();
 
     if (!validReservationStatuses.contains(normalizedStatus)) {
-      throw ArgumentError(
-        'Estado de reservación no válido: $status.',
-      );
+      throw ArgumentError('Estado de reservación no válido: $status.');
     }
   }
 
   /// -------------------------------------------------------------------------
   /// Valida que el estado del horario sea oficial.
   /// -------------------------------------------------------------------------
-  static void validateScheduleStatus(
-      String status,
-      ) {
+  static void validateScheduleStatus(String status) {
     final normalizedStatus = status.trim();
 
     if (!validScheduleStatuses.contains(normalizedStatus)) {
-      throw ArgumentError(
-        'Estado de horario no válido: $status.',
-      );
+      throw ArgumentError('Estado de horario no válido: $status.');
     }
   }
 
@@ -59,9 +51,7 @@ class ReservationBusinessRules {
   ///
   /// `reserved` y `blocked` no permiten crear una reservación.
   /// -------------------------------------------------------------------------
-  static void validateScheduleCanBeReserved(
-      String scheduleStatus,
-      ) {
+  static void validateScheduleCanBeReserved(String scheduleStatus) {
     validateScheduleStatus(scheduleStatus);
 
     if (scheduleStatus.trim() != 'available') {
@@ -80,28 +70,19 @@ class ReservationBusinessRules {
   /// Esta regla no consulta Firestore directamente porque pertenece
   /// a DOMAIN.
   /// -------------------------------------------------------------------------
-  static void validateNoDoubleBooking({
-    required bool hasExistingReservation,
-  }) {
+  static void validateNoDoubleBooking({required bool hasExistingReservation}) {
     if (hasExistingReservation) {
-      throw StateError(
-        'El horario seleccionado ya tiene una reservación.',
-      );
+      throw StateError('El horario seleccionado ya tiene una reservación.');
     }
   }
 
   /// Validates a coach's confirmation of a completed session.
-  static void validateReservationCanBeCompleted({
-    required String status,
-  }) {
+  static void validateReservationCanBeCompleted({required String status}) {
     validateReservationStatus(status);
 
-    if (status != 'pending' && status != 'confirmed') {
-      throw StateError(
-        'Solo se pueden completar reservaciones pendientes o confirmadas.',
-      );
+    if (status != 'confirmed') {
+      throw StateError('Solo se pueden completar reservaciones confirmadas.');
     }
-
   }
 
   /// -------------------------------------------------------------------------
@@ -133,9 +114,7 @@ class ReservationBusinessRules {
   /// -------------------------------------------------------------------------
   /// Valida el importe de la reservación.
   /// -------------------------------------------------------------------------
-  static void validateAmount(
-      double amount,
-      ) {
+  static void validateAmount(double amount) {
     if (amount < 0) {
       throw ArgumentError(
         'El importe de la reservación no puede ser negativo.',
@@ -146,15 +125,11 @@ class ReservationBusinessRules {
   /// -------------------------------------------------------------------------
   /// Valida que el estado de pago sea oficial.
   /// -------------------------------------------------------------------------
-  static void validatePaymentStatus(
-      String paymentStatus,
-      ) {
+  static void validatePaymentStatus(String paymentStatus) {
     final normalizedStatus = paymentStatus.trim();
 
     if (!validPaymentStatuses.contains(normalizedStatus)) {
-      throw ArgumentError(
-        'Estado de pago no válido: $paymentStatus.',
-      );
+      throw ArgumentError('Estado de pago no válido: $paymentStatus.');
     }
   }
 
@@ -177,9 +152,7 @@ class ReservationBusinessRules {
 
     if (reservationStatus.trim() == 'confirmed' &&
         paymentStatus.trim() != 'paid') {
-      throw StateError(
-        'Una reservación confirmada requiere un pago exitoso.',
-      );
+      throw StateError('Una reservación confirmada requiere un pago exitoso.');
     }
   }
 
@@ -197,21 +170,15 @@ class ReservationBusinessRules {
     required double amount,
   }) {
     if (clientId.trim().isEmpty) {
-      throw ArgumentError(
-        'El identificador del cliente es obligatorio.',
-      );
+      throw ArgumentError('El identificador del cliente es obligatorio.');
     }
 
     if (coachId.trim().isEmpty) {
-      throw ArgumentError(
-        'El identificador del Coach es obligatorio.',
-      );
+      throw ArgumentError('El identificador del Coach es obligatorio.');
     }
 
     if (scheduleId.trim().isEmpty) {
-      throw ArgumentError(
-        'El identificador del horario es obligatorio.',
-      );
+      throw ArgumentError('El identificador del horario es obligatorio.');
     }
 
     validateReservationStatus(status);

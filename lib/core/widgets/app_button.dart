@@ -47,8 +47,8 @@ class AppButton extends StatelessWidget {
     this.height = AppDimensions.buttonHeight,
     this.icon,
     this.iconSpacing = AppDimensions.md,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

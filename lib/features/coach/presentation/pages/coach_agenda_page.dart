@@ -30,10 +30,7 @@ import '../../domain/entities/coach_schedule.dart';
 /// - La administración de disponibilidad continúa en CoachSchedulePage.
 /// ---------------------------------------------------------------------------
 class CoachAgendaPage extends ConsumerWidget {
-  const CoachAgendaPage({
-    super.key,
-    required this.coachId,
-  });
+  const CoachAgendaPage({super.key, required this.coachId});
 
   /// Identificador del Coach cuya agenda se consulta.
   final String coachId;
@@ -45,14 +42,10 @@ class CoachAgendaPage extends ConsumerWidget {
     ///
     /// Incluye horarios disponibles aunque todavía no tengan reservación.
     /// -----------------------------------------------------------------------
-    final reservationsAsync = ref.watch(
-      coachAgendaItemsProvider(coachId),
-    );
+    final reservationsAsync = ref.watch(coachAgendaItemsProvider(coachId));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mi agenda'),
-      ),
+      appBar: AppBar(title: const Text('Mi agenda')),
       body: reservationsAsync.when(
         /// -------------------------------------------------------------------
         /// ESTADO DE CARGA
@@ -67,9 +60,7 @@ class CoachAgendaPage extends ConsumerWidget {
         error: (error, stackTrace) {
           return _CoachAgendaErrorState(
             onRetry: () {
-              ref.invalidate(
-                coachAgendaItemsProvider(coachId),
-              );
+              ref.invalidate(coachAgendaItemsProvider(coachId));
             },
           );
         },
@@ -78,7 +69,8 @@ class CoachAgendaPage extends ConsumerWidget {
         /// ESTADO DE DATOS
         /// -------------------------------------------------------------------
         data: (items) {
-          final uniqueItems = <({Reservation? reservation, CoachSchedule schedule})>[];
+          final uniqueItems =
+              <({Reservation? reservation, CoachSchedule schedule})>[];
           final seenScheduleIds = <String>{};
 
           for (final item in items) {
@@ -92,28 +84,23 @@ class CoachAgendaPage extends ConsumerWidget {
 
           /// Próximas sesiones: pendientes o confirmadas cuya fecha/hora
           /// todavía no ha transcurrido.
-          final upcoming = uniqueItems
-              .where(
-                (item) => _isUpcoming(
-                item.reservation,
-              item.schedule,
-              now,
-            ),
-          )
-              .toList()
-            ..sort(_compareUpcoming);
+          final upcoming =
+              uniqueItems
+                  .where(
+                    (item) => _isUpcoming(item.reservation, item.schedule, now),
+                  )
+                  .toList()
+                ..sort(_compareUpcoming);
 
           /// Historial: sesiones pasadas o reservaciones completadas/canceladas.
-          final history = uniqueItems
-              .where(
-                (item) => !_isUpcoming(
-              item.reservation,
-              item.schedule,
-              now,
-            ),
-          )
-              .toList()
-            ..sort(_compareHistory);
+          final history =
+              uniqueItems
+                  .where(
+                    (item) =>
+                        !_isUpcoming(item.reservation, item.schedule, now),
+                  )
+                  .toList()
+                ..sort(_compareHistory);
 
           /// ---------------------------------------------------------------
           /// ESTADO VACÍO
@@ -121,38 +108,28 @@ class CoachAgendaPage extends ConsumerWidget {
           if (uniqueItems.isEmpty) {
             return _CoachAgendaEmptyState(
               onRefresh: () async {
-                ref.invalidate(
-                  coachAgendaItemsProvider(coachId),
-                );
+                ref.invalidate(coachAgendaItemsProvider(coachId));
 
-                await ref.read(
-                  coachAgendaItemsProvider(coachId).future,
-                );
+                await ref.read(coachAgendaItemsProvider(coachId).future);
               },
             );
           }
 
           return RefreshIndicator(
             onRefresh: () async {
-              ref.invalidate(
-                coachAgendaItemsProvider(coachId),
-              );
+              ref.invalidate(coachAgendaItemsProvider(coachId));
 
-              await ref.read(
-                coachAgendaItemsProvider(coachId).future,
-              );
+              await ref.read(coachAgendaItemsProvider(coachId).future);
             },
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(16),
               children: [
                 if (upcoming.isNotEmpty) ...[
-                  const _AgendaSectionTitle(
-                    title: 'Próximas sesiones',
-                  ),
+                  const _AgendaSectionTitle(title: 'Próximas sesiones'),
                   const SizedBox(height: 12),
                   ...upcoming.map(
-                        (item) => Padding(
+                    (item) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _CoachAgendaCard(
                         reservation: item.reservation,
@@ -162,14 +139,11 @@ class CoachAgendaPage extends ConsumerWidget {
                   ),
                 ],
                 if (history.isNotEmpty) ...[
-                  if (upcoming.isNotEmpty)
-                    const SizedBox(height: 12),
-                  const _AgendaSectionTitle(
-                    title: 'Historial',
-                  ),
+                  if (upcoming.isNotEmpty) const SizedBox(height: 12),
+                  const _AgendaSectionTitle(title: 'Historial'),
                   const SizedBox(height: 12),
                   ...history.map(
-                        (item) => Padding(
+                    (item) => Padding(
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _CoachAgendaHistoryCard(
                         reservation: item.reservation,
@@ -190,14 +164,14 @@ class CoachAgendaPage extends ConsumerWidget {
   /// Determina si una reservación pertenece a próximas sesiones.
   /// -------------------------------------------------------------------------
   bool _isUpcoming(
-      Reservation? reservation,
-      CoachSchedule schedule,
-      DateTime now,
-      ) {
+    Reservation? reservation,
+    CoachSchedule schedule,
+    DateTime now,
+  ) {
     /// Una reservación completada o cancelada pertenece al historial,
     /// independientemente de la fecha del horario.
     if (reservation?.status == 'completed' ||
-      reservation?.status == 'cancelled') {
+        reservation?.status == 'cancelled') {
       return false;
     }
 
@@ -208,24 +182,24 @@ class CoachAgendaPage extends ConsumerWidget {
   /// Orden cronológico ascendente para próximas sesiones.
   /// -------------------------------------------------------------------------
   int _compareUpcoming(
-      ({Reservation? reservation, CoachSchedule schedule}) first,
-      ({Reservation? reservation, CoachSchedule schedule}) second,
-      ) {
-    return _scheduleDateTime(first.schedule).compareTo(
-      _scheduleDateTime(second.schedule),
-    );
+    ({Reservation? reservation, CoachSchedule schedule}) first,
+    ({Reservation? reservation, CoachSchedule schedule}) second,
+  ) {
+    return _scheduleDateTime(
+      first.schedule,
+    ).compareTo(_scheduleDateTime(second.schedule));
   }
 
   /// -------------------------------------------------------------------------
   /// Orden cronológico descendente para historial.
   /// -------------------------------------------------------------------------
   int _compareHistory(
-      ({Reservation? reservation, CoachSchedule schedule}) first,
-      ({Reservation? reservation, CoachSchedule schedule}) second,
-      ) {
-    return _scheduleDateTime(second.schedule).compareTo(
-      _scheduleDateTime(first.schedule),
-    );
+    ({Reservation? reservation, CoachSchedule schedule}) first,
+    ({Reservation? reservation, CoachSchedule schedule}) second,
+  ) {
+    return _scheduleDateTime(
+      second.schedule,
+    ).compareTo(_scheduleDateTime(first.schedule));
   }
 
   /// -------------------------------------------------------------------------
@@ -256,54 +230,78 @@ class _AgendaSectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleLarge,
-    );
+    return Text(title, style: Theme.of(context).textTheme.titleLarge);
   }
 }
 
 /// ---------------------------------------------------------------------------
 /// Tarjeta de una próxima sesión.
 /// ---------------------------------------------------------------------------
-class _CoachAgendaCard extends StatelessWidget {
-  const _CoachAgendaCard({
-    required this.reservation,
-    required this.schedule,
-  });
+class _CoachAgendaCard extends ConsumerWidget {
+  const _CoachAgendaCard({required this.reservation, required this.schedule});
 
   final Reservation? reservation;
   final CoachSchedule schedule;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pendingReservation = reservation?.status == 'pending'
+        ? reservation
+        : null;
+    final isUpdating = ref.watch(reservationControllerProvider).isLoading;
+
     return Card(
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 12,
-        ),
-        leading: const CircleAvatar(
-          child: Icon(Icons.event_available_outlined),
-        ),
-        title: Text(
-          _formatDate(schedule.date),
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        subtitle: Padding(
-          padding: const EdgeInsets.only(top: 6),
-          child: Text(
-            ReservationBusinessRules.formatTimeRange(
-              schedule.startTime,
-              schedule.endTime,
+      child: Column(
+        children: [
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 12,
+            ),
+            leading: const CircleAvatar(
+              child: Icon(Icons.event_available_outlined),
+            ),
+            title: Text(
+              _formatDate(schedule.date),
+              style: const TextStyle(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                ReservationBusinessRules.formatTimeRange(
+                  schedule.startTime,
+                  schedule.endTime,
+                ),
+              ),
+            ),
+            trailing: _ReservationStatusLabel(
+              status: reservation?.status ?? schedule.status,
             ),
           ),
-        ),
-        trailing: _ReservationStatusLabel(
-          status: reservation?.status ?? schedule.status,
-        ),
+          if (pendingReservation != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: isUpdating
+                      ? null
+                      : () => _acceptReservationRequest(
+                          context,
+                          ref,
+                          pendingReservation.reservationId,
+                        ),
+                  icon: isUpdating
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.check_circle_outline),
+                  label: const Text('Aceptar solicitud'),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -330,9 +328,10 @@ class _CoachAgendaHistoryCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final activeReservation = reservation;
-    final canComplete = activeReservation != null &&
-        (activeReservation.status == 'pending' ||
-        activeReservation.status == 'confirmed');
+    final canAccept =
+        activeReservation != null && activeReservation.status == 'pending';
+    final canComplete =
+        activeReservation != null && activeReservation.status == 'confirmed';
     final isUpdating = ref.watch(reservationControllerProvider).isLoading;
 
     return Card(
@@ -343,14 +342,10 @@ class _CoachAgendaHistoryCard extends ConsumerWidget {
               horizontal: 16,
               vertical: 12,
             ),
-            leading: const CircleAvatar(
-              child: Icon(Icons.history),
-            ),
+            leading: const CircleAvatar(child: Icon(Icons.history)),
             title: Text(
               _formatDate(schedule.date),
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w600),
             ),
             subtitle: Padding(
               padding: const EdgeInsets.only(top: 6),
@@ -365,6 +360,24 @@ class _CoachAgendaHistoryCard extends ConsumerWidget {
               status: reservation?.status ?? schedule.status,
             ),
           ),
+          if (canAccept)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: isUpdating
+                      ? null
+                      : () => _acceptReservationRequest(
+                          context,
+                          ref,
+                          activeReservation.reservationId,
+                        ),
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: const Text('Aceptar solicitud'),
+                ),
+              ),
+            ),
           if (canComplete)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -425,9 +438,7 @@ class _CoachAgendaHistoryCard extends ConsumerWidget {
     } catch (_) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('No fue posible completar la sesión.'),
-        ),
+        const SnackBar(content: Text('No fue posible completar la sesión.')),
       );
     }
   }
@@ -436,6 +447,27 @@ class _CoachAgendaHistoryCard extends ConsumerWidget {
     final day = date.day.toString().padLeft(2, '0');
     final month = date.month.toString().padLeft(2, '0');
     return '$day/$month/${date.year}';
+  }
+}
+
+Future<void> _acceptReservationRequest(
+  BuildContext context,
+  WidgetRef ref,
+  String reservationId,
+) async {
+  try {
+    await ref
+        .read(reservationControllerProvider.notifier)
+        .acceptReservationAsCoach(reservationId: reservationId);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Solicitud aceptada.')));
+  } catch (_) {
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('No fue posible aceptar la solicitud.')),
+    );
   }
 }
 
@@ -452,17 +484,11 @@ class _ReservationStatusLabel extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          _statusIcon(status),
-          size: 20,
-        ),
+        Icon(_statusIcon(status), size: 20),
         const SizedBox(height: 4),
         Text(
           _statusLabel(status),
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-          ),
+          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
         ),
       ],
     );
@@ -519,9 +545,7 @@ class _CoachAgendaLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(
-      child: CircularProgressIndicator(),
-    );
+    return const Center(child: CircularProgressIndicator());
   }
 }
 
@@ -529,9 +553,7 @@ class _CoachAgendaLoadingState extends StatelessWidget {
 /// Estado vacío.
 /// ---------------------------------------------------------------------------
 class _CoachAgendaEmptyState extends StatelessWidget {
-  const _CoachAgendaEmptyState({
-    required this.onRefresh,
-  });
+  const _CoachAgendaEmptyState({required this.onRefresh});
 
   final Future<void> Function() onRefresh;
 
@@ -544,18 +566,12 @@ class _CoachAgendaEmptyState extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         children: const [
           SizedBox(height: 120),
-          Icon(
-            Icons.event_note_outlined,
-            size: 64,
-          ),
+          Icon(Icons.event_note_outlined, size: 64),
           SizedBox(height: 16),
           Text(
             'No tienes sesiones programadas.',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
           ),
           SizedBox(height: 8),
           Text(
@@ -572,9 +588,7 @@ class _CoachAgendaEmptyState extends StatelessWidget {
 /// Estado de error.
 /// ---------------------------------------------------------------------------
 class _CoachAgendaErrorState extends StatelessWidget {
-  const _CoachAgendaErrorState({
-    required this.onRetry,
-  });
+  const _CoachAgendaErrorState({required this.onRetry});
 
   final VoidCallback onRetry;
 
@@ -586,10 +600,7 @@ class _CoachAgendaErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 48,
-            ),
+            const Icon(Icons.error_outline, size: 48),
             const SizedBox(height: 16),
             const Text(
               'No fue posible cargar la agenda.',

@@ -77,19 +77,81 @@ async function notifyClient({
   reservationId: string;
   title: string;
   body: string;
-  type: 'reservation_created' | 'session_completed';
+  type: 'reservation_created' | 'reservation_confirmed' | 'session_completed';
 }): Promise<void> {
   const clientSnapshot = await firestore.collection('users').doc(clientId).get();
   const clientEmail = asString(clientSnapshot.data()?.email);
 
-  const tokenSnapshot = await firestore
-    .collection('fcmTokens')
-    .where('uid', '==', clientId)
-    .get();
+  await sendPushNotification({
+    uid: clientId,
+    reservationId,
+    title,
+    body,
+    type,
+    audience: 'client',
+  });
+
+  if (!clientEmail) {
+    logger.warn('El cliente no tiene correo en users/{uid}.', {
+      clientId,
+      reservationId,
+    });
+    return;
+  }
+
+  sgMail.setApiKey(sendGridApiKey.value());
+  await sgMail.send({
+    to: clientEmail,
+    from: sendGridFromEmail.value(),
+    subject: title,
+    text: body,
+  });
+}
+
+async function sendPushNotification({
+  uid,
+  reservationId,
+  title,
+  body,
+  type,
+  audience,
+}: {
+  uid: string;
+  reservationId: string;
+  title: string;
+  body: string;
+  type: string;
+  audience: 'client' | 'coach';
+}): Promise<boolean> {
+  let tokenSnapshot;
+  try {
+    tokenSnapshot = await firestore
+      .collection('fcmTokens')
+      .where('uid', '==', uid)
+      .get();
+  } catch (error) {
+    logger.error('No fue posible consultar los tokens push.', {
+      uid,
+      reservationId,
+      audience,
+      error,
+    });
+    return false;
+  }
   const tokenDocuments = tokenSnapshot.docs.filter(
     (document) => asString(document.data().token) !== null,
   );
 
+  if (tokenDocuments.length === 0) {
+    logger.warn('No hay tokens push registrados para el usuario.', {
+      uid,
+      reservationId,
+      audience,
+    });
+    return false;
+  }
+
+  let delivered = false;
   for (let index = 0; index < tokenDocuments.length; index += 500) {
     const batch = tokenDocuments.slice(index, index + 500);
     const tokens = batch.map((document) => document.data().token as string);
@@ -100,11 +162,13 @@ async function notifyClient({
         data: {
           type,
           reservationId,
-          route: '/reservations',
+          audience,
+          route: audience === 'coach' ? '/coach/agenda' : '/reservations',
         },
         android: { priority: 'high' },
         apns: { payload: { aps: { sound: 'default' } } },
       });
+      delivered = delivered || response.successCount > 0;
 
       const batchWrite = firestore.batch();
       let invalidTokenCount = 0;
@@ -124,26 +188,12 @@ async function notifyClient({
     } catch (error) {
       logger.error('No fue posible enviar la notificación push.', {
         reservationId,
+        uid,
         error,
       });
     }
   }
-
-  if (!clientEmail) {
-    logger.warn('El cliente no tiene correo en users/{uid}.', {
-      clientId,
-      reservationId,
-    });
-    return;
-  }
-
-  sgMail.setApiKey(sendGridApiKey.value());
-  await sgMail.send({
-    to: clientEmail,
-    from: sendGridFromEmail.value(),
-    subject: title,
-    text: body,
-  });
+  return delivered;
 }
 
 export const notifyClientWhenReservationCreated = onDocumentCreated(
@@ -177,6 +227,104 @@ export const notifyClientWhenReservationCreated = onDocumentCreated(
       title,
       body,
       type: 'reservation_created',
+    });
+  },
+);
+
+export const notifyCoachWhenReservationCreated = onDocumentCreated(
+  {
+    document: 'reservations/{reservationId}',
+    region: 'us-central1',
+    secrets: [sendGridApiKey],
+  },
+  async (event) => {
+    const reservation = event.data?.data() as ReservationData | undefined;
+    if (!reservation || reservation.status !== 'pending') return;
+
+    const coachId = asString(reservation.coachId);
+    const clientId = asString(reservation.clientId);
+    if (!coachId || !clientId) {
+      logger.error('La solicitud no contiene coachId o clientId.', {
+        reservationId: event.params.reservationId,
+      });
+      return;
+    }
+
+    const clientSnapshot = await firestore.collection('users').doc(clientId).get();
+    const clientData = clientSnapshot.data();
+    const clientName =
+      asString(clientData?.name) ??
+      asString(clientData?.displayName) ??
+      'Un cliente';
+    const { sessionDescription } = await getSessionDescription(
+      asString(reservation.scheduleId),
+      coachId,
+    );
+
+    const title = 'Nueva solicitud de reservación';
+    const body = `${clientName} solicita ${sessionDescription}. Abre tu agenda para responder.`;
+    const pushDelivered = await sendPushNotification({
+      uid: coachId,
+      reservationId: event.params.reservationId,
+      title,
+      body,
+      type: 'reservation_request',
+      audience: 'coach',
+    });
+
+    if (pushDelivered) return;
+
+    const coachSnapshot = await firestore.collection('users').doc(coachId).get();
+    const coachEmail = asString(coachSnapshot.data()?.email);
+    if (!coachEmail) {
+      logger.warn('El coach no tiene correo en users/{uid}.', {
+        coachId,
+        reservationId: event.params.reservationId,
+      });
+      return;
+    }
+
+    sgMail.setApiKey(sendGridApiKey.value());
+    await sgMail.send({
+      to: coachEmail,
+      from: sendGridFromEmail.value(),
+      subject: title,
+      text: body,
+    });
+  },
+);
+
+export const notifyClientWhenReservationConfirmed = onDocumentUpdated(
+  {
+    document: 'reservations/{reservationId}',
+    region: 'us-central1',
+    secrets: [sendGridApiKey],
+  },
+  async (event) => {
+    const before = event.data?.before.data() as ReservationData | undefined;
+    const after = event.data?.after.data() as ReservationData | undefined;
+    if (!before || !after) return;
+    if (before.status !== 'pending' || after.status !== 'confirmed') return;
+
+    const clientId = asString(after.clientId);
+    if (!clientId) {
+      logger.error('La reservación confirmada no contiene clientId.', {
+        reservationId: event.params.reservationId,
+      });
+      return;
+    }
+
+    const { coachName, sessionDescription } = await getSessionDescription(
+      asString(after.scheduleId),
+      asString(after.coachId),
+    );
+
+    await notifyClient({
+      clientId,
+      reservationId: event.params.reservationId,
+      title: 'Solicitud aceptada y sesión agendada',
+      body: `El Coach ${coachName} aceptó tu solicitud. Tu sesión (${sessionDescription}) ya quedó agendada.`,
+      type: 'reservation_confirmed',
     });
   },
 );

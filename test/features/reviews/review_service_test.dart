@@ -175,6 +175,10 @@ class _FakeReservationRepository implements ReservationRepository {
   Future<Reservation> getReservation(String reservationId) async => reservation;
 
   @override
+  Stream<Reservation> watchReservation(String reservationId) =>
+      Stream.value(reservation);
+
+  @override
   Future<List<Reservation>> getClientReservations(String clientId) async =>
       throw UnimplementedError();
 

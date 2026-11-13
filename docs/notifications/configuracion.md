@@ -31,6 +31,16 @@
 
 - Al crearse una reserva `pending`, el cliente recibe push y correo con el coach,
   fecha y horario.
+- Al crearse una solicitud `pending`, el coach asignado recibe una notificación
+  push con el nombre del cliente y el horario solicitado. Si no se entrega el
+  push, se envía un correo al coach. Puede revisar el resumen y aceptar la
+  solicitud desde "Mi agenda".
+- Mientras la solicitud siga pendiente, el cliente ve su resumen y el estado
+  "Esperando respuesta del Coach". La pantalla se cierra al aceptar; el estado
+  confirmado aparece en "Mis reservaciones".
+- Al aceptar el Coach una reserva pendiente, el cliente recibe una notificación
+  push y correo indicando que la solicitud fue aceptada y la sesión quedó
+  agendada.
 - Al cambiar una reserva a `completed`, el cliente recibe push y correo indicando
   que ya puede calificar y reseñar.
 - Los mensajes push llevan `reservationId`; al abrirlos, la app navega a

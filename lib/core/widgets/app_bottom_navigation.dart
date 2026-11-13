@@ -52,8 +52,8 @@ class AppBottomNavigation extends StatelessWidget {
     this.backgroundColor = AppColors.surface,
     this.elevation = 4,
     this.showLabels = true,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

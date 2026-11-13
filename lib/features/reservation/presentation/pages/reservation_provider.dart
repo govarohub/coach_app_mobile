@@ -12,24 +12,19 @@ import '../../domain/services/reservation_business_rules.dart';
 /// DataSource de Reservaciones.
 /// ---------------------------------------------------------------------------
 final firebaseReservationDataSourceProvider =
-Provider<FirebaseReservationDataSource>((ref) {
-  return FirebaseReservationDataSource();
-});
+    Provider<FirebaseReservationDataSource>((ref) {
+      return FirebaseReservationDataSource();
+    });
 
 /// ---------------------------------------------------------------------------
 /// Repository de Reservaciones.
 ///
 /// La capa de presentación no accede directamente a Firebase.
 /// ---------------------------------------------------------------------------
-final reservationRepositoryProvider =
-Provider<ReservationRepository>((ref) {
-  final dataSource = ref.watch(
-    firebaseReservationDataSourceProvider,
-  );
+final reservationRepositoryProvider = Provider<ReservationRepository>((ref) {
+  final dataSource = ref.watch(firebaseReservationDataSourceProvider);
 
-  return ReservationRepositoryImpl(
-    dataSource: dataSource,
-  );
+  return ReservationRepositoryImpl(dataSource: dataSource);
 });
 
 /// ---------------------------------------------------------------------------
@@ -39,25 +34,32 @@ Provider<ReservationRepository>((ref) {
 /// El estado de la reservación se valida en la capa de dominio antes de
 /// entregarla a la presentación.
 /// ---------------------------------------------------------------------------
-final reservationProvider =
-FutureProvider.family<Reservation, String>(
-      (ref, reservationId) async {
-    // Obtiene el Repository existente.
-    final repository = ref.watch(
-      reservationRepositoryProvider,
-    );
+final reservationProvider = FutureProvider.family<Reservation, String>((
+  ref,
+  reservationId,
+) async {
+  // Obtiene el Repository existente.
+  final repository = ref.watch(reservationRepositoryProvider);
 
-    // Consulta la reservación.
-    final reservation = await repository.getReservation(
-      reservationId,
-    );
+  // Consulta la reservación.
+  final reservation = await repository.getReservation(reservationId);
 
-    // Valida el estado oficial en la entidad de dominio.
-    reservation.validateOfficialStatus();
+  // Valida el estado oficial en la entidad de dominio.
+  reservation.validateOfficialStatus();
 
-    return reservation;
-  },
-);
+  return reservation;
+});
+
+/// Escucha el estado de una reservación para reflejar en vivo la respuesta
+/// del Coach.
+final reservationUpdatesProvider = StreamProvider.family<Reservation, String>((
+  ref,
+  reservationId,
+) {
+  return ref
+      .watch(reservationRepositoryProvider)
+      .watchReservation(reservationId);
+});
 
 /// ---------------------------------------------------------------------------
 /// Obtiene las reservaciones del cliente autenticado.
@@ -65,29 +67,22 @@ FutureProvider.family<Reservation, String>(
 /// CK-017.10:
 /// Todas las reservaciones obtenidas deben utilizar estados oficiales.
 /// ---------------------------------------------------------------------------
-final clientReservationsProvider =
-FutureProvider<List<Reservation>>((ref) async {
+final clientReservationsProvider = FutureProvider<List<Reservation>>((
+  ref,
+) async {
   // Obtiene el usuario autenticado.
-  final authState = await ref.watch(
-    authStateProvider.future,
-  );
+  final authState = await ref.watch(authStateProvider.future);
 
   // No se permite consultar reservaciones sin sesión.
   if (authState == null) {
-    throw StateError(
-      'No existe una sesión de usuario activa.',
-    );
+    throw StateError('No existe una sesión de usuario activa.');
   }
 
   // Obtiene el Repository existente.
-  final repository = ref.watch(
-    reservationRepositoryProvider,
-  );
+  final repository = ref.watch(reservationRepositoryProvider);
 
   // Consulta las reservaciones del cliente.
-  final reservations = await repository.getClientReservations(
-    authState.id,
-  );
+  final reservations = await repository.getClientReservations(authState.id);
 
   // -------------------------------------------------------------------------
   // CK-017.10
@@ -107,18 +102,13 @@ FutureProvider<List<Reservation>>((ref) async {
 /// CK-017.10:
 /// Todas las reservaciones obtenidas deben utilizar estados oficiales.
 /// ---------------------------------------------------------------------------
-final coachReservationsProvider =
-FutureProvider.family<List<Reservation>, String>(
-      (ref, coachId) async {
+final coachReservationsProvider = FutureProvider.family<List<Reservation>, String>(
+  (ref, coachId) async {
     // Obtiene el Repository existente.
-    final repository = ref.watch(
-      reservationRepositoryProvider,
-    );
+    final repository = ref.watch(reservationRepositoryProvider);
 
     // Consulta las reservaciones del Coach.
-    final reservations = await repository.getCoachReservations(
-      coachId,
-    );
+    final reservations = await repository.getCoachReservations(coachId);
 
     // -------------------------------------------------------------------------
     // CK-017.10
@@ -142,34 +132,26 @@ FutureProvider.family<List<Reservation>, String>(
 /// horario necesaria para separar próximas sesiones e historial.
 /// ---------------------------------------------------------------------------
 final clientReservationsWithSchedulesProvider =
-FutureProvider<List<({
-Reservation reservation,
-CoachSchedule schedule,
-})>>((ref) async {
-  // Obtiene las reservaciones previamente validadas.
-  final reservations = await ref.watch(
-    clientReservationsProvider.future,
-  );
+    FutureProvider<List<({Reservation reservation, CoachSchedule schedule})>>((
+      ref,
+    ) async {
+      // Obtiene las reservaciones previamente validadas.
+      final reservations = await ref.watch(clientReservationsProvider.future);
 
-  // Obtiene el Repository existente de horarios.
-  final scheduleRepository = ref.watch(
-    coachScheduleRepositoryProvider,
-  );
+      // Obtiene el Repository existente de horarios.
+      final scheduleRepository = ref.watch(coachScheduleRepositoryProvider);
 
-  // Asocia cada reservación con su horario.
-  return Future.wait(
-    reservations.map((reservation) async {
-      final schedule = await scheduleRepository.getSchedule(
-        reservation.scheduleId,
+      // Asocia cada reservación con su horario.
+      return Future.wait(
+        reservations.map((reservation) async {
+          final schedule = await scheduleRepository.getSchedule(
+            reservation.scheduleId,
+          );
+
+          return (reservation: reservation, schedule: schedule);
+        }),
       );
-
-      return (
-      reservation: reservation,
-      schedule: schedule,
-      );
-    }),
-  );
-});
+    });
 
 /// ---------------------------------------------------------------------------
 /// CK-017.7
@@ -180,67 +162,63 @@ CoachSchedule schedule,
 /// del horario.
 /// ---------------------------------------------------------------------------
 final coachReservationsWithSchedulesProvider =
-FutureProvider.family<List<({
-Reservation reservation,
-CoachSchedule schedule,
-})>, String>((ref, coachId) async {
-  // Obtiene las reservaciones previamente validadas.
-  final reservations = await ref.watch(
-    coachReservationsProvider(coachId).future,
-  );
-
-  // Obtiene el Repository existente de horarios.
-  final scheduleRepository = ref.watch(
-    coachScheduleRepositoryProvider,
-  );
-
-  // Asocia cada reservación con su horario.
-  return Future.wait(
-    reservations.map((reservation) async {
-      final schedule = await scheduleRepository.getSchedule(
-        reservation.scheduleId,
+    FutureProvider.family<
+      List<({Reservation reservation, CoachSchedule schedule})>,
+      String
+    >((ref, coachId) async {
+      // Obtiene las reservaciones previamente validadas.
+      final reservations = await ref.watch(
+        coachReservationsProvider(coachId).future,
       );
 
-      return (
-      reservation: reservation,
-      schedule: schedule,
+      // Obtiene el Repository existente de horarios.
+      final scheduleRepository = ref.watch(coachScheduleRepositoryProvider);
+
+      // Asocia cada reservación con su horario.
+      return Future.wait(
+        reservations.map((reservation) async {
+          final schedule = await scheduleRepository.getSchedule(
+            reservation.scheduleId,
+          );
+
+          return (reservation: reservation, schedule: schedule);
+        }),
       );
-    }),
-  );
-});
+    });
 
 /// Obtiene todos los horarios del Coach y asocia la reservación más reciente,
 /// si existe, para mostrar disponibilidad y sesiones reservadas en su agenda.
-final coachAgendaItemsProvider = FutureProvider.family<List<({
-  Reservation? reservation,
-  CoachSchedule schedule,
-})>, String>((ref, coachId) async {
-  final schedules = await ref.watch(
-    coachSchedulesProvider(coachId).future,
-  );
-  final reservations = await ref.watch(
-    coachReservationsProvider(coachId).future,
-  );
+final coachAgendaItemsProvider =
+    FutureProvider.family<
+      List<({Reservation? reservation, CoachSchedule schedule})>,
+      String
+    >((ref, coachId) async {
+      final schedules = await ref.watch(coachSchedulesProvider(coachId).future);
+      final reservations = await ref.watch(
+        coachReservationsProvider(coachId).future,
+      );
 
-  final reservationsByScheduleId = <String, Reservation>{};
-  final newestFirstReservations = [...reservations]
-    ..sort((first, second) => second.createdAt.compareTo(first.createdAt));
+      final reservationsByScheduleId = <String, Reservation>{};
+      final newestFirstReservations = [...reservations]
+        ..sort((first, second) => second.createdAt.compareTo(first.createdAt));
 
-  for (final reservation in newestFirstReservations) {
-    reservationsByScheduleId.putIfAbsent(
-      reservation.scheduleId,
-      () => reservation,
-    );
-  }
+      for (final reservation in newestFirstReservations) {
+        reservationsByScheduleId.putIfAbsent(
+          reservation.scheduleId,
+          () => reservation,
+        );
+      }
 
-  return schedules
-      .where((schedule) => schedule.status != 'blocked')
-      .map((schedule) => (
-            reservation: reservationsByScheduleId[schedule.scheduleId],
-            schedule: schedule,
-          ))
-      .toList();
-});
+      return schedules
+          .where((schedule) => schedule.status != 'blocked')
+          .map(
+            (schedule) => (
+              reservation: reservationsByScheduleId[schedule.scheduleId],
+              schedule: schedule,
+            ),
+          )
+          .toList();
+    });
 
 /// ---------------------------------------------------------------------------
 /// Controller de Reservaciones.
@@ -275,14 +253,10 @@ class ReservationController extends AsyncNotifier<void> {
       // -----------------------------------------------------------------------
       // 1. Obtener usuario autenticado.
       // -----------------------------------------------------------------------
-      final authState = await ref.read(
-        authStateProvider.future,
-      );
+      final authState = await ref.read(authStateProvider.future);
 
       if (authState == null) {
-        throw StateError(
-          'No existe una sesión de usuario activa.',
-        );
+        throw StateError('No existe una sesión de usuario activa.');
       }
 
       final repository = ref.read(reservationRepositoryProvider);
@@ -291,9 +265,8 @@ class ReservationController extends AsyncNotifier<void> {
       final schedule = await scheduleRepository.getSchedule(scheduleId);
       ReservationBusinessRules.validateScheduleCanBeReserved(schedule.status);
 
-      final hasExistingReservation = await repository.hasActiveReservationForSchedule(
-        scheduleId,
-      );
+      final hasExistingReservation = await repository
+          .hasActiveReservationForSchedule(scheduleId);
       ReservationBusinessRules.validateNoDoubleBooking(
         hasExistingReservation: hasExistingReservation,
       );
@@ -323,29 +296,16 @@ class ReservationController extends AsyncNotifier<void> {
       state = const AsyncData(null);
 
       // Actualizar consultas relacionadas.
-      ref.invalidate(
-        coachSchedulesProvider(coachId),
-      );
-      ref.invalidate(
-        coachAvailableSchedulesProvider(coachId),
-      );
-      ref.invalidate(
-        clientReservationsProvider,
-      );
-      ref.invalidate(
-        clientReservationsWithSchedulesProvider,
-      );
-      ref.invalidate(
-        coachReservationsProvider(coachId),
-      );
+      ref.invalidate(coachSchedulesProvider(coachId));
+      ref.invalidate(coachAvailableSchedulesProvider(coachId));
+      ref.invalidate(clientReservationsProvider);
+      ref.invalidate(clientReservationsWithSchedulesProvider);
+      ref.invalidate(coachReservationsProvider(coachId));
 
       return reservationId;
     } catch (error, stackTrace) {
       // Conservar el error en el Controller.
-      state = AsyncError(
-        error,
-        stackTrace,
-      );
+      state = AsyncError(error, stackTrace);
 
       // Permitir que la pantalla maneje el error.
       rethrow;
@@ -372,25 +332,18 @@ class ReservationController extends AsyncNotifier<void> {
 
     try {
       // Obtener usuario autenticado.
-      final authState = await ref.read(
-        authStateProvider.future,
-      );
+      final authState = await ref.read(authStateProvider.future);
 
       // No se permite crear una reservación sin sesión.
       if (authState == null) {
-        throw StateError(
-          'No existe una sesión de usuario activa.',
-        );
+        throw StateError('No existe una sesión de usuario activa.');
       }
 
       // Obtener Repository existente.
-      final repository = ref.read(
-        reservationRepositoryProvider,
-      );
+      final repository = ref.read(reservationRepositoryProvider);
 
       // Crear la reservación con estado inicial `pending`.
-      final reservationId =
-      await repository.createPendingReservation(
+      final reservationId = await repository.createPendingReservation(
         clientId: authState.id,
         coachId: coachId,
         scheduleId: scheduleId,
@@ -401,17 +354,12 @@ class ReservationController extends AsyncNotifier<void> {
       state = const AsyncData(null);
 
       // Actualizar consulta de reservaciones del cliente.
-      ref.invalidate(
-        clientReservationsProvider,
-      );
+      ref.invalidate(clientReservationsProvider);
 
       return reservationId;
     } catch (error, stackTrace) {
       // Conservar el error en el Controller.
-      state = AsyncError(
-        error,
-        stackTrace,
-      );
+      state = AsyncError(error, stackTrace);
 
       rethrow;
     }
@@ -448,9 +396,7 @@ class ReservationController extends AsyncNotifier<void> {
       Reservation.validateStatus(status);
 
       // Obtener Repository existente.
-      final repository = ref.read(
-        reservationRepositoryProvider,
-      );
+      final repository = ref.read(reservationRepositoryProvider);
 
       // Persistir el nuevo estado.
       await repository.updateReservationStatus(
@@ -462,21 +408,56 @@ class ReservationController extends AsyncNotifier<void> {
       state = const AsyncData(null);
 
       // Actualizar reservación individual.
-      ref.invalidate(
-        reservationProvider(reservationId),
-      );
+      ref.invalidate(reservationProvider(reservationId));
 
       // Actualizar reservaciones del cliente.
-      ref.invalidate(
-        clientReservationsProvider,
-      );
+      ref.invalidate(clientReservationsProvider);
     } catch (error, stackTrace) {
       // Conservar el error en el Controller.
-      state = AsyncError(
-        error,
-        stackTrace,
+      state = AsyncError(error, stackTrace);
+
+      rethrow;
+    }
+  }
+
+  /// Accepts a pending request only for the authenticated assigned coach.
+  Future<void> acceptReservationAsCoach({
+    required String reservationId,
+  }) async {
+    state = const AsyncLoading();
+
+    try {
+      final authState = await ref.read(authStateProvider.future);
+      if (authState == null || authState.role.trim() != 'coach') {
+        throw StateError('Solo un Coach puede aceptar una reservación.');
+      }
+
+      final repository = ref.read(reservationRepositoryProvider);
+      final reservation = await repository.getReservation(reservationId);
+      reservation.validateOfficialStatus();
+
+      if (reservation.coachId != authState.id) {
+        throw StateError('La reservación no pertenece a este Coach.');
+      }
+      if (reservation.status != 'pending') {
+        throw StateError('La solicitud ya no está pendiente.');
+      }
+
+      await repository.updateReservationStatus(
+        reservationId: reservationId,
+        status: 'confirmed',
       );
 
+      state = const AsyncData(null);
+      ref.invalidate(reservationProvider(reservationId));
+      ref.invalidate(reservationUpdatesProvider(reservationId));
+      ref.invalidate(clientReservationsProvider);
+      ref.invalidate(clientReservationsWithSchedulesProvider);
+      ref.invalidate(coachReservationsProvider(reservation.coachId));
+      ref.invalidate(coachReservationsWithSchedulesProvider(reservation.coachId));
+      ref.invalidate(coachAgendaItemsProvider(reservation.coachId));
+    } catch (error, stackTrace) {
+      state = AsyncError(error, stackTrace);
       rethrow;
     }
   }
@@ -517,7 +498,9 @@ class ReservationController extends AsyncNotifier<void> {
       ref.invalidate(clientReservationsProvider);
       ref.invalidate(clientReservationsWithSchedulesProvider);
       ref.invalidate(coachReservationsProvider(reservation.coachId));
-      ref.invalidate(coachReservationsWithSchedulesProvider(reservation.coachId));
+      ref.invalidate(
+        coachReservationsWithSchedulesProvider(reservation.coachId),
+      );
       ref.invalidate(coachAgendaItemsProvider(reservation.coachId));
     } catch (error, stackTrace) {
       state = AsyncError(error, stackTrace);
@@ -536,9 +519,7 @@ class ReservationController extends AsyncNotifier<void> {
 
     try {
       // Obtener Repository existente.
-      final repository = ref.read(
-        reservationRepositoryProvider,
-      );
+      final repository = ref.read(reservationRepositoryProvider);
 
       // Actualizar únicamente el pago.
       await repository.updateReservationPayment(
@@ -550,20 +531,13 @@ class ReservationController extends AsyncNotifier<void> {
       state = const AsyncData(null);
 
       // Actualizar reservación individual.
-      ref.invalidate(
-        reservationProvider(reservationId),
-      );
+      ref.invalidate(reservationProvider(reservationId));
 
       // Actualizar reservaciones del cliente.
-      ref.invalidate(
-        clientReservationsProvider,
-      );
+      ref.invalidate(clientReservationsProvider);
     } catch (error, stackTrace) {
       // Conservar el error en el Controller.
-      state = AsyncError(
-        error,
-        stackTrace,
-      );
+      state = AsyncError(error, stackTrace);
 
       rethrow;
     }
@@ -574,6 +548,6 @@ class ReservationController extends AsyncNotifier<void> {
 /// Provider del Controller de Reservaciones.
 /// ---------------------------------------------------------------------------
 final reservationControllerProvider =
-AsyncNotifierProvider<ReservationController, void>(
-  ReservationController.new,
-);
+    AsyncNotifierProvider<ReservationController, void>(
+      ReservationController.new,
+    );

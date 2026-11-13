@@ -7,9 +7,7 @@ import '../models/reservation_model.dart';
 /// Implementación del Repository de Reservaciones.
 /// ---------------------------------------------------------------------------
 class ReservationRepositoryImpl implements ReservationRepository {
-  ReservationRepositoryImpl({
-    required this._dataSource,
-  });
+  ReservationRepositoryImpl({required this._dataSource});
 
   /// DataSource responsable del acceso a Firestore.
   final FirebaseReservationDataSource _dataSource;
@@ -18,9 +16,7 @@ class ReservationRepositoryImpl implements ReservationRepository {
   /// Obtiene una reservación por su identificador.
   /// -------------------------------------------------------------------------
   @override
-  Future<Reservation> getReservation(
-      String reservationId,
-      ) async {
+  Future<Reservation> getReservation(String reservationId) async {
     _validateReservationId(reservationId);
 
     // Consulta el documento mediante el DataSource.
@@ -30,27 +26,38 @@ class ReservationRepositoryImpl implements ReservationRepository {
 
     // El documento solicitado debe existir.
     if (!document.exists) {
-      throw StateError(
-        'No existe la reservación solicitada.',
-      );
+      throw StateError('No existe la reservación solicitada.');
     }
 
     // Convierte Firestore en el modelo correspondiente.
-    final model = ReservationModel.fromFirestore(
-      document,
-    );
+    final model = ReservationModel.fromFirestore(document);
 
     // El modelo extiende la entidad de dominio.
     return model;
+  }
+
+  @override
+  Stream<Reservation> watchReservation(String reservationId) {
+    _validateReservationId(reservationId);
+
+    return _dataSource
+        .watchReservationDocument(reservationId: reservationId)
+        .map((document) {
+          if (!document.exists) {
+            throw StateError('No existe la reservación solicitada.');
+          }
+
+          final reservation = ReservationModel.fromFirestore(document);
+          reservation.validateOfficialStatus();
+          return reservation;
+        });
   }
 
   /// -------------------------------------------------------------------------
   /// Obtiene las reservaciones de un cliente.
   /// -------------------------------------------------------------------------
   @override
-  Future<List<Reservation>> getClientReservations(
-      String clientId,
-      ) async {
+  Future<List<Reservation>> getClientReservations(String clientId) async {
     _validateClientId(clientId);
 
     // Consulta únicamente a través del DataSource.
@@ -59,18 +66,14 @@ class ReservationRepositoryImpl implements ReservationRepository {
     );
 
     // Convierte todos los documentos a entidades de dominio.
-    return snapshot.docs
-        .map(ReservationModel.fromFirestore)
-        .toList();
+    return snapshot.docs.map(ReservationModel.fromFirestore).toList();
   }
 
   /// -------------------------------------------------------------------------
   /// Obtiene las reservaciones de un Coach.
   /// -------------------------------------------------------------------------
   @override
-  Future<List<Reservation>> getCoachReservations(
-      String coachId,
-      ) async {
+  Future<List<Reservation>> getCoachReservations(String coachId) async {
     _validateCoachId(coachId);
 
     // Consulta las reservaciones del Coach.
@@ -79,9 +82,7 @@ class ReservationRepositoryImpl implements ReservationRepository {
     );
 
     // Convierte los documentos Firestore a entidades.
-    return snapshot.docs
-        .map(ReservationModel.fromFirestore)
-        .toList();
+    return snapshot.docs.map(ReservationModel.fromFirestore).toList();
   }
 
   /// -------------------------------------------------------------------------
@@ -110,9 +111,7 @@ class ReservationRepositoryImpl implements ReservationRepository {
 
     // El importe no puede ser negativo.
     if (amount < 0) {
-      throw ArgumentError(
-        'El monto de la reservación no puede ser negativo.',
-      );
+      throw ArgumentError('El monto de la reservación no puede ser negativo.');
     }
 
     // Crear la reservación mediante el DataSource.
@@ -218,9 +217,7 @@ class ReservationRepositoryImpl implements ReservationRepository {
   /// -------------------------------------------------------------------------
   void _validateReservationId(String reservationId) {
     if (reservationId.trim().isEmpty) {
-      throw ArgumentError(
-        'El identificador de la reservación es obligatorio.',
-      );
+      throw ArgumentError('El identificador de la reservación es obligatorio.');
     }
   }
 
@@ -229,9 +226,7 @@ class ReservationRepositoryImpl implements ReservationRepository {
   /// -------------------------------------------------------------------------
   void _validateClientId(String clientId) {
     if (clientId.trim().isEmpty) {
-      throw ArgumentError(
-        'El identificador del cliente es obligatorio.',
-      );
+      throw ArgumentError('El identificador del cliente es obligatorio.');
     }
   }
 
@@ -240,9 +235,7 @@ class ReservationRepositoryImpl implements ReservationRepository {
   /// -------------------------------------------------------------------------
   void _validateCoachId(String coachId) {
     if (coachId.trim().isEmpty) {
-      throw ArgumentError(
-        'El identificador del Coach es obligatorio.',
-      );
+      throw ArgumentError('El identificador del Coach es obligatorio.');
     }
   }
 
@@ -251,9 +244,7 @@ class ReservationRepositoryImpl implements ReservationRepository {
   /// -------------------------------------------------------------------------
   void _validateScheduleId(String scheduleId) {
     if (scheduleId.trim().isEmpty) {
-      throw ArgumentError(
-        'El identificador del horario es obligatorio.',
-      );
+      throw ArgumentError('El identificador del horario es obligatorio.');
     }
   }
 }

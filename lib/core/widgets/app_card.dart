@@ -48,8 +48,8 @@ class AppCard extends StatelessWidget {
     this.backgroundColor = AppColors.surface,
     this.shadows = AppShadows.small,
     this.hasHoverEffect = false,
-    Key? key,
-  }) : super(key: key);
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -143,10 +143,10 @@ class FirebaseNotificationService {
   void _showForegroundMessage(RemoteMessage message) {
     final title = message.notification?.title?.trim();
     final body = message.notification?.body?.trim();
-    final text = [title, body]
-        .whereType<String>()
-        .where((part) => part.isNotEmpty)
-        .join('\n');
+    final text = [
+      title,
+      body,
+    ].whereType<String>().where((part) => part.isNotEmpty).join('\n');
     if (text.isEmpty) return;
 
     scaffoldMessengerKey.currentState?.showSnackBar(
@@ -162,6 +162,12 @@ class FirebaseNotificationService {
 
   void _openReservations(RemoteMessage message) {
     if (message.data['reservationId'] == null) return;
+    if (message.data['audience'] == 'coach') {
+      final coachId = _auth.currentUser?.uid;
+      if (coachId == null) return;
+      AppRouter.router.goNamed(RouteNames.coachAgenda, extra: coachId);
+      return;
+    }
     AppRouter.router.goNamed(RouteNames.reservations);
   }
 }

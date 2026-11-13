@@ -10,9 +10,19 @@ service cloud.firestore {
       let reservationPath = /databases/$(database)/documents/reservations/$(reservationId);
       return isSignedIn()
         && get(reservationPath).data.coachId == request.auth.uid
-        && (get(reservationPath).data.status == 'pending'
-          || get(reservationPath).data.status == 'confirmed')
+        && get(reservationPath).data.status == 'confirmed'
         && request.resource.data.status == 'completed'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status'
+        ]);
+    }
+
+    function coachAcceptsReservation(reservationId) {
+      let reservationPath = /databases/$(database)/documents/reservations/$(reservationId);
+      return isSignedIn()
+        && get(reservationPath).data.coachId == request.auth.uid
+        && get(reservationPath).data.status == 'pending'
+        && request.resource.data.status == 'confirmed'
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           'status'
         ]);
@@ -103,6 +113,7 @@ service cloud.firestore {
 
       allow update: if isSignedIn()
         && (request.resource.data.status == resource.data.status
+          || coachAcceptsReservation(reservationId)
           || coachCompletesReservation(reservationId));
 
       allow delete: if isSignedIn();

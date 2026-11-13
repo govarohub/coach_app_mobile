@@ -25,13 +25,7 @@ void main() {
       );
     });
 
-    test('permite al Coach confirmar reservas pendientes o confirmadas', () {
-      expect(
-        () => ReservationBusinessRules.validateReservationCanBeCompleted(
-          status: 'pending',
-        ),
-        returnsNormally,
-      );
+    test('permite completar una reservación confirmada', () {
       expect(
         () => ReservationBusinessRules.validateReservationCanBeCompleted(
           status: 'confirmed',
@@ -40,7 +34,13 @@ void main() {
       );
     });
 
-    test('rechaza al Coach completar reservas en estado terminal', () {
+    test('requiere aceptación previa para completar la reservación', () {
+      expect(
+        () => ReservationBusinessRules.validateReservationCanBeCompleted(
+          status: 'pending',
+        ),
+        throwsA(isA<StateError>()),
+      );
       expect(
         () => ReservationBusinessRules.validateReservationCanBeCompleted(
           status: 'cancelled',

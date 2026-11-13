@@ -16,15 +16,14 @@ abstract interface class ReservationRepository {
   /// Obtiene una reservación mediante su identificador.
   Future<Reservation> getReservation(String reservationId);
 
+  /// Escucha los cambios de una reservación.
+  Stream<Reservation> watchReservation(String reservationId);
+
   /// Obtiene las reservaciones realizadas por un cliente.
-  Future<List<Reservation>> getClientReservations(
-      String clientId,
-      );
+  Future<List<Reservation>> getClientReservations(String clientId);
 
   /// Obtiene las reservaciones pertenecientes a un Coach.
-  Future<List<Reservation>> getCoachReservations(
-      String coachId,
-      );
+  Future<List<Reservation>> getCoachReservations(String coachId);
 
   /// Crea una nueva reservación.
   Future<String> createReservation({

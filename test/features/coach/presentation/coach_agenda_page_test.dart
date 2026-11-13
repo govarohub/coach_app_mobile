@@ -8,29 +8,31 @@ import 'package:coach_app_mobile/features/reservation/domain/entities/reservatio
 import 'package:coach_app_mobile/features/reservation/presentation/pages/reservation_provider.dart';
 
 void main() {
-  testWidgets('shows coach completion verification for a pending history item', (
-    tester,
-  ) async {
-    final controller = _FakeReservationController();
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+  testWidgets(
+    'shows coach completion verification for a confirmed history item',
+    (tester) async {
+      final controller = _FakeReservationController();
+      final yesterday = DateTime.now().subtract(const Duration(days: 1));
 
-    await tester.pumpWidget(
-      _testApp(
-        scheduleDate: yesterday,
-        controller: controller,
-      ),
-    );
-    await tester.pumpAndSettle();
+      await tester.pumpWidget(
+        _testApp(
+          scheduleDate: yesterday,
+          controller: controller,
+          reservationStatus: 'confirmed',
+        ),
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Marcar sesión como completada'), findsOneWidget);
+      expect(find.text('Marcar sesión como completada'), findsOneWidget);
 
-    await tester.tap(find.text('Marcar sesión como completada'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Confirmar'));
-    await tester.pumpAndSettle();
+      await tester.tap(find.text('Marcar sesión como completada'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Confirmar'));
+      await tester.pumpAndSettle();
 
-    expect(controller.completedReservationId, 'reservation-1');
-  });
+      expect(controller.completedReservationId, 'reservation-1');
+    },
+  );
 
   testWidgets('does not show completion action for an upcoming session', (
     tester,
@@ -47,18 +49,39 @@ void main() {
 
     expect(find.text('Marcar sesión como completada'), findsNothing);
   });
+
+  testWidgets('shows an accept action for a pending upcoming request', (
+    tester,
+  ) async {
+    final controller = _FakeReservationController();
+
+    await tester.pumpWidget(
+      _testApp(
+        scheduleDate: DateTime.now().add(const Duration(days: 1)),
+        controller: controller,
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Aceptar solicitud'), findsOneWidget);
+    await tester.tap(find.text('Aceptar solicitud'));
+    await tester.pumpAndSettle();
+
+    expect(controller.acceptedReservationId, 'reservation-1');
+  });
 }
 
 Widget _testApp({
   required DateTime scheduleDate,
   required _FakeReservationController controller,
+  String reservationStatus = 'pending',
 }) {
   final reservation = Reservation(
     reservationId: 'reservation-1',
     clientId: 'client-1',
     coachId: 'coach-1',
     scheduleId: 'schedule-1',
-    status: 'pending',
+    status: reservationStatus,
     amount: 200,
     createdAt: DateTime(2026, 10, 1),
   );
@@ -80,14 +103,13 @@ Widget _testApp({
       ),
       reservationControllerProvider.overrideWith(() => controller),
     ],
-    child: const MaterialApp(
-      home: CoachAgendaPage(coachId: 'coach-1'),
-    ),
+    child: const MaterialApp(home: CoachAgendaPage(coachId: 'coach-1')),
   );
 }
 
 class _FakeReservationController extends ReservationController {
   String? completedReservationId;
+  String? acceptedReservationId;
 
   @override
   Future<void> build() async {}
@@ -97,5 +119,10 @@ class _FakeReservationController extends ReservationController {
     required String reservationId,
   }) async {
     completedReservationId = reservationId;
+  }
+
+  @override
+  Future<void> acceptReservationAsCoach({required String reservationId}) async {
+    acceptedReservationId = reservationId;
   }
 }
